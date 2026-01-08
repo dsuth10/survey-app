@@ -20,10 +20,9 @@ description: "Task list template for feature implementation"
 
 ## Path Conventions
 
-- **Single project**: `src/`, `tests/` at repository root
-- **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+- **Web app**: `backend/src/`, `frontend/src/` (Standard for Survey App)
+- **Shared**: `database/` (SQLite file location)
+- Paths shown below assume web project structure.
 
 <!-- 
   ============================================================================

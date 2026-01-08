@@ -1,50 +1,77 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+- Version change: 0.0.0 → 1.0.0
+- List of modified principles:
+  - [PRINCIPLE_1] → I. Role-Based Access Control (RBAC) & Visibility
+  - [PRINCIPLE_2] → II. Validation & Data Integrity
+  - [PRINCIPLE_3] → III. LAN-First Architecture
+  - [PRINCIPLE_4] → IV. Test-Driven Discipline
+  - [PRINCIPLE_5] → V. Modular Extensibility
+- Added sections: Technology Stack, User Governance
+- Removed sections: None
+- Templates requiring updates:
+  - ✅ updated: .specify/templates/plan-template.md
+  - ✅ updated: .specify/templates/spec-template.md
+  - ✅ updated: .specify/templates/tasks-template.md
+- Follow-up TODOs: None
+-->
+
+# Survey App Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Role-Based Access Control (RBAC) & Visibility
+Security and privacy are non-negotiable. All survey data must be governed by strict visibility logic:
+- Students see only their own surveys or those shared with their class, year level, or school-wide.
+- Teachers have full administrative visibility into all surveys and results.
+- Anonymous settings must be strictly enforced for student views (identities hidden from creators if set).
+- Rationale: Ensures a safe and private environment for student feedback while maintaining teacher oversight.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Validation & Data Integrity
+Data quality and consistency are maintained through strict validation rules:
+- Surveys MUST have at least one multiple-choice question to be published.
+- Duplicate submissions from the same student for a single survey MUST be blocked.
+- Question order and options MUST be preserved using `orderIndex` and robust JSON schemas.
+- Rationale: Prevents corrupt or low-quality data from entering the system.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. LAN-First Architecture
+The application is specifically optimized for school LAN deployment:
+- It MUST be deployable via a single `npm start` command on a Windows host machine.
+- Persistence MUST use a single SQLite file for zero-config database management.
+- Fixed ports MUST be used: 3005 for Frontend (React) and 3006 for Backend (Express).
+- Rationale: Minimizes deployment complexity for school environments without dedicated IT infrastructure.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Test-Driven Discipline
+Quality is built into every feature from the start:
+- TDD is mandatory for all core logic, especially visibility, authentication, and response validation.
+- Backend tests MUST use Jest and Supertest.
+- Frontend tests MUST use React Testing Library.
+- All tests MUST pass before a feature can be considered "Done."
+- Rationale: High reliability is critical when the application is used by hundreds of students simultaneously.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Modular Extensibility
+Design decisions must favor future growth without breaking core functionality:
+- The system MUST support adding new question types (beyond multiple choice) without schema changes.
+- Authentication MUST be modular to allow future integration with Windows AD/NTLM.
+- Use enums and dynamic handlers for question processing.
+- Rationale: Ensures the MVP remains a viable foundation for post-MVP enhancements.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Technology Stack
+The Survey App is built on a modern, lightweight, and local-friendly stack:
+- **Frontend**: React application served from Express.
+- **Backend**: Express.js API handling CRUD, permissions, and session management.
+- **Database**: SQLite with single-file persistence.
+- **Communication**: RESTful API endpoints following standard HTTP status codes.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## User Governance
+User interactions are defined by two primary roles:
+- **Student Role**: Empowered to create, distribute (within teacher-set limits), browse, and respond.
+- **Teacher Role**: Full administrative oversight, including result aggregation and managing class sharing permissions.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+This constitution is the source of truth for all architectural and design decisions:
+- Amendments require a documented rationale, a MAJOR version bump, and a consistency check.
+- All Implementation Plans must include a "Constitution Check" section verifying alignment with these principles.
+- Versioning follows semantic rules (MAJOR.MINOR.PATCH).
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-01-08 | **Last Amended**: 2026-01-08

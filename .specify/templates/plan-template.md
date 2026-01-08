@@ -31,7 +31,13 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Check | Status |
+|-----------|-------|--------|
+| **I. RBAC & Visibility** | Does this feature respect role-based visibility and privacy settings? | [ ] |
+| **II. Data Integrity** | Are validation rules (e.g., duplicate checks, question counts) enforced? | [ ] |
+| **III. LAN-First** | Does this work within the 3005/3006 port and SQLite constraints? | [ ] |
+| **IV. TDD Discipline** | Are tests (Jest/Supertest/RTL) planned for core logic? | [ ] |
+| **V. Extensibility** | Does this avoid breaking the core schema or question extensibility? | [ ] |
 
 ## Project Structure
 
