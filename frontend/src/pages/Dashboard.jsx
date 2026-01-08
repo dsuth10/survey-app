@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Card, CardHeader, CardBody, Button, Skeleton, Chip, Divider, User } from "@heroui/react";
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [mySurveys, setMySurveys] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchMySurveys();
@@ -14,10 +16,7 @@ export default function Dashboard() {
 
   const fetchMySurveys = async () => {
     try {
-      // In a real app, we'd have a specific endpoint for "my surveys"
-      // or we filter the main list. For now, let's use the main list.
       const response = await axios.get('/api/surveys');
-      // Filter for surveys created by me (if role is teacher or student)
       setMySurveys(response.data.filter(s => s.creatorId === user.id));
     } catch (err) {
       console.error('Failed to fetch surveys');
@@ -27,51 +26,96 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Welcome, {user.displayName || user.username}!</h1>
-        <button onClick={logout} style={{ padding: '8px 16px' }}>Logout</button>
+    <div className="max-w-6xl mx-auto py-8">
+      <div className="flex justify-between items-center mb-12">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">Welcome back!</h1>
+          <User
+            name={user.displayName || user.username}
+            description={user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+            avatarProps={{
+              src: "https://i.pravatar.cc/150?u=" + user.id,
+              size: "lg",
+              isBordered: true,
+              color: "primary"
+            }}
+          />
+        </div>
+        <div className="flex gap-4">
+          <Button 
+            color="primary" 
+            variant="shadow" 
+            onPress={() => navigate("/browse")}
+          >
+            Browse All Surveys
+          </Button>
+          <Button 
+            color="success" 
+            variant="flat" 
+            onPress={() => navigate("/create")}
+          >
+            Create New Survey
+          </Button>
+          {user.role === 'teacher' && (
+            <Button 
+              color="secondary" 
+              variant="flat" 
+              onPress={() => navigate("/manage-class")}
+            >
+              Manage Class
+            </Button>
+          )}
+        </div>
       </div>
-      <p>Role: {user.role.charAt(0).toUpperCase() + user.role.slice(1)}</p>
+
+      <Divider className="my-8" />
+
+      <h2 className="text-2xl font-bold mb-6">Surveys Created By Me</h2>
       
-      <div style={{ margin: '30px 0', display: 'flex', gap: '15px' }}>
-        <Link to="/browse" style={{ padding: '12px 24px', background: '#007bff', color: 'white', textDecoration: 'none', borderRadius: '5px' }}>
-          Browse All Surveys
-        </Link>
-        <Link to="/create-survey" style={{ padding: '12px 24px', background: '#28a745', color: 'white', textDecoration: 'none', borderRadius: '5px' }}>
-          Create New Survey
-        </Link>
-        {user.role === 'teacher' && (
-          <Link to="/manage-class" style={{ padding: '12px 24px', background: '#17a2b8', color: 'white', textDecoration: 'none', borderRadius: '5px' }}>
-            Manage Class
-          </Link>
-        )}
-      </div>
-
-      <hr />
-
-      <h2 style={{ marginTop: '30px' }}>Surveys Created By Me</h2>
       {loading ? (
-        <p>Loading your surveys...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="p-4 h-[120px]">
+              <Skeleton className="rounded-lg">
+                <div className="h-full bg-default-300"></div>
+              </Skeleton>
+            </Card>
+          ))}
+        </div>
       ) : mySurveys.length === 0 ? (
-        <p>You haven't created any surveys yet.</p>
+        <Card isBlurred className="p-12 text-center border-none bg-background/60 dark:bg-default-100/50">
+          <p className="text-default-500 mb-4">You haven't created any surveys yet.</p>
+          <Button color="primary" variant="flat" onPress={() => navigate("/create")}>
+            Get Started
+          </Button>
+        </Card>
       ) : (
-        <div style={{ display: 'grid', gap: '15px', marginTop: '20px' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {mySurveys.map(survey => (
-            <div key={survey.id} style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: '0 0 5px 0' }}>{survey.title}</h3>
-                <p style={{ margin: 0, color: '#666', fontSize: '0.9em' }}>
-                  {survey.isAnonymous ? 'Anonymous' : 'Identified'} | {new Date(survey.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <Link 
-                to={`/results/${survey.id}`}
-                style={{ padding: '8px 16px', border: '1px solid #007bff', color: '#007bff', textDecoration: 'none', borderRadius: '4px' }}
-              >
-                View Results
-              </Link>
-            </div>
+            <Card 
+              key={survey.id} 
+              isPressable
+              isBlurred
+              className="border-none bg-background/60 dark:bg-default-100/50 shadow-sm hover:shadow-md"
+              onPress={() => navigate(`/results/${survey.id}`)}
+            >
+              <CardHeader className="flex gap-3 px-4 pt-4">
+                <div className="flex flex-col">
+                  <p className="text-md font-bold line-clamp-1">{survey.title}</p>
+                  <p className="text-small text-default-500">{new Date(survey.createdAt).toLocaleDateString()}</p>
+                </div>
+              </CardHeader>
+              <CardBody className="px-4 pb-4 pt-2">
+                <div className="flex gap-2">
+                  <Chip size="sm" variant="flat" color={survey.isAnonymous ? "warning" : "default"}>
+                    {survey.isAnonymous ? 'Anonymous' : 'Identified'}
+                  </Chip>
+                  <Chip size="sm" variant="flat" color="primary">
+                    {survey.questionCount || 0} Questions
+                  </Chip>
+                </div>
+              </CardBody>
+            </Card>
           ))}
         </div>
       )}

@@ -1,71 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { Checkbox, Chip } from "@heroui/react";
 
 export default function SharingOptions({ user, sharing, setSharing }) {
   const [permissions, setPermissions] = useState(null);
 
   useEffect(() => {
     if (user && user.role === 'student' && user.classId) {
-      // In a real app, we'd have an endpoint for this. For now, let's assume
-      // the permissions are either fetched or we just check the user role.
-      // Since we don't have the GET /api/classes/:id/permissions yet, 
-      // let's assume students can share with class by default.
       setPermissions({
         canShareWithClass: true,
-        canShareWithYearLevel: false, // Default restricted
+        canShareWithYearLevel: false, 
         canShareWithSchool: false
       });
     }
   }, [user]);
 
-  const handleChange = (e) => {
-    const { name, checked } = e.target;
+  const handleChange = (name, checked) => {
     setSharing(prev => ({ ...prev, [name]: checked }));
   };
 
   const isTeacher = user?.role === 'teacher';
 
   return (
-    <div style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '5px', marginTop: '20px' }}>
-      <h4>Distribution Options</h4>
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            name="sharedWithClass"
-            checked={sharing.sharedWithClass}
-            onChange={handleChange}
-            disabled={!isTeacher && permissions && !permissions.canShareWithClass}
-          />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="font-semibold text-default-700">Distribution Options</h4>
+        {!isTeacher && <Chip size="sm" variant="flat">Student Limits</Chip>}
+      </div>
+      
+      <div className="flex flex-col gap-3">
+        <Checkbox
+          isSelected={sharing.sharedWithClass}
+          onValueChange={(checked) => handleChange("sharedWithClass", checked)}
+          isDisabled={!isTeacher && permissions && !permissions.canShareWithClass}
+          color="primary"
+        >
           Share with Class
-        </label>
-      </div>
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            name="sharedWithYearLevel"
-            checked={sharing.sharedWithYearLevel}
-            onChange={handleChange}
-            disabled={!isTeacher && permissions && !permissions.canShareWithYearLevel}
-          />
+        </Checkbox>
+        
+        <Checkbox
+          isSelected={sharing.sharedWithYearLevel}
+          onValueChange={(checked) => handleChange("sharedWithYearLevel", checked)}
+          isDisabled={!isTeacher && permissions && !permissions.canShareWithYearLevel}
+          color="primary"
+        >
           Share with Year Level
-        </label>
-      </div>
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            name="sharedWithSchool"
-            checked={sharing.sharedWithSchool}
-            onChange={handleChange}
-            disabled={!isTeacher && permissions && !permissions.canShareWithSchool}
-          />
+        </Checkbox>
+        
+        <Checkbox
+          isSelected={sharing.sharedWithSchool}
+          onValueChange={(checked) => handleChange("sharedWithSchool", checked)}
+          isDisabled={!isTeacher && permissions && !permissions.canShareWithSchool}
+          color="primary"
+        >
           Share with School
-        </label>
+        </Checkbox>
       </div>
+
       {!isTeacher && permissions && (
-        <p style={{ fontSize: '0.8em', color: '#666' }}>
+        <p className="text-xs text-default-400 mt-2 italic">
           Note: Some options may be restricted by your teacher.
         </p>
       )}

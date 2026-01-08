@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2026-01-08
 
 ## Active Technologies
+- JavaScript (ESM), React 19+ + `@heroui/react`, `framer-motion`, `tailwindcss`, `vite` (002-heroui-redesign)
+- N/A (Frontend only redesign) (002-heroui-redesign)
 
 - Node.js v18+, React v18+ + Express, React, better-sqlite3, express-session, Jest, Supertest, React Testing Library (001-survey-app-mvp)
 
@@ -22,6 +24,7 @@ tests/
 Node.js v18+, React v18+: Follow standard conventions
 
 ## Recent Changes
+- 002-heroui-redesign: Added JavaScript (ESM), React 19+ + `@heroui/react`, `framer-motion`, `tailwindcss`, `vite`
 
 - 001-survey-app-mvp: Added Node.js v18+, React v18+ + Express, React, better-sqlite3, express-session, Jest, Supertest, React Testing Library
 

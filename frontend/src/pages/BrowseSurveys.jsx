@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Card, CardHeader, CardBody, Button, Skeleton, Chip, Divider } from "@heroui/react";
 
 export default function BrowseSurveys() {
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchSurveys();
@@ -22,62 +24,74 @@ export default function BrowseSurveys() {
     }
   };
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading surveys...</div>;
-  if (error) return <div style={{ padding: '20px', color: 'red' }}>{error}</div>;
+  if (error) return <div className="p-8 text-danger">{error}</div>;
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Available Surveys</h2>
-        <Link to="/" style={{ textDecoration: 'none', color: '#007bff' }}>Back to Dashboard</Link>
+    <div className="max-w-4xl mx-auto py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-3xl font-bold">Available Surveys</h2>
       </div>
 
-      {surveys.length === 0 ? (
-        <p>No surveys available at this time.</p>
+      {loading ? (
+        <div className="grid gap-4">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="w-full h-[150px] p-4">
+              <Skeleton className="rounded-lg">
+                <div className="h-24 rounded-lg bg-default-300"></div>
+              </Skeleton>
+            </Card>
+          ))}
+        </div>
+      ) : surveys.length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="text-default-500">No surveys available at this time.</p>
+        </Card>
       ) : (
-        <div style={{ display: 'grid', gap: '15px' }}>
+        <div className="grid gap-6">
           {surveys.map(survey => (
-            <div 
+            <Card 
               key={survey.id} 
-              style={{ 
-                border: '1px solid #ddd', 
-                padding: '15px', 
-                borderRadius: '8px',
-                backgroundColor: survey.hasResponded ? '#f9f9f9' : 'white',
-                opacity: survey.hasResponded ? 0.8 : 1
-              }}
+              isBlurred
+              className={`border-none bg-background/60 dark:bg-default-100/50 shadow-sm hover:shadow-md transition-shadow ${survey.hasResponded ? 'opacity-70' : ''}`}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 5px 0' }}>{survey.title}</h3>
-                  <p style={{ margin: '0', color: '#666', fontSize: '0.9em' }}>
-                    Created by: {survey.creatorName} | {new Date(survey.createdAt).toLocaleDateString()}
-                  </p>
-                  {survey.description && (
-                    <p style={{ marginTop: '10px', color: '#333' }}>{survey.description}</p>
-                  )}
+              <CardBody className="p-6">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-grow">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold">{survey.title}</h3>
+                      {survey.hasResponded && (
+                        <Chip color="success" variant="flat" size="sm">✓ Responded</Chip>
+                      )}
+                    </div>
+                    <p className="text-default-500 text-sm mb-4">
+                      Created by: {survey.creatorName} • {new Date(survey.createdAt).toLocaleDateString()}
+                    </p>
+                    {survey.description && (
+                      <p className="text-default-700 line-clamp-2">{survey.description}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {!survey.hasResponded ? (
+                      <Button 
+                        color="primary"
+                        variant="shadow"
+                        onPress={() => navigate(`/take-survey/${survey.id}`)}
+                      >
+                        Take Survey
+                      </Button>
+                    ) : (
+                      <Button 
+                        color="default"
+                        variant="flat"
+                        onPress={() => navigate(`/results/${survey.id}`)}
+                      >
+                        View Results
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  {survey.hasResponded ? (
-                    <span style={{ color: '#28a745', fontWeight: 'bold' }}>✓ Responded</span>
-                  ) : (
-                    <Link 
-                      to={`/take-survey/${survey.id}`}
-                      style={{ 
-                        display: 'inline-block',
-                        padding: '8px 16px',
-                        backgroundColor: '#007bff',
-                        color: 'white',
-                        textDecoration: 'none',
-                        borderRadius: '4px'
-                      }}
-                    >
-                      Take Survey
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
+              </CardBody>
+            </Card>
           ))}
         </div>
       )}

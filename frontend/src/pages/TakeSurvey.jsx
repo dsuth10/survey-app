@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Card, CardHeader, CardBody, Divider, Button } from "@heroui/react";
+import RadioQuestion from '../components/questions/RadioQuestion';
+import SurveyActions from '../components/SurveyActions';
 
 export default function TakeSurvey() {
   const { id } = useParams();
@@ -33,8 +36,7 @@ export default function TakeSurvey() {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError('');
     
     // Check if all required questions are answered
@@ -60,62 +62,38 @@ export default function TakeSurvey() {
     }
   };
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading survey...</div>;
-  if (error && !survey) return <div style={{ padding: '20px', color: 'red' }}>{error}</div>;
+  if (loading) return <div className="p-8 text-center">Loading survey...</div>;
+  if (error && !survey) return <div className="p-8 text-danger">{error}</div>;
 
   return (
-    <div style={{ padding: '20px', maxWidth: '700px', margin: '0 auto' }}>
-      <h2>Take Survey</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        {survey.questions.map((q, index) => (
-          <div key={q.id} style={{ marginBottom: '25px', padding: '15px', border: '1px solid #eee', borderRadius: '8px' }}>
-            <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>
-              {index + 1}. {q.questionText} {q.isRequired && <span style={{ color: 'red' }}>*</span>}
-            </p>
-            <div style={{ display: 'grid', gap: '8px' }}>
-              {q.options.map((opt, i) => (
-                <label key={i} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name={`question-${q.id}`}
-                    value={opt}
-                    checked={answers[q.id] === opt}
-                    onChange={() => handleOptionChange(q.id, opt)}
-                    required={q.isRequired}
-                    style={{ marginRight: '10px' }}
-                  />
-                  {opt}
-                </label>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        <div style={{ marginTop: '20px' }}>
-          <button 
-            type="submit" 
-            disabled={submitting}
-            style={{ 
-              padding: '10px 20px', 
-              backgroundColor: '#28a745', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '4px',
-              cursor: submitting ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {submitting ? 'Submitting...' : 'Submit Response'}
-          </button>
-          <button 
-            type="button" 
-            onClick={() => navigate('/browse')}
-            style={{ marginLeft: '10px', padding: '10px 20px' }}
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
+    <div className="max-w-2xl mx-auto py-8">
+      <Card isBlurred className="border-none bg-background/60 dark:bg-default-100/50 shadow-lg">
+        <CardHeader className="flex flex-col items-start px-6 pt-6 pb-0">
+          <h1 className="text-2xl font-bold uppercase">{survey.title}</h1>
+          <p className="text-default-500">{survey.description || 'Please complete the survey below.'}</p>
+          {error && <p className="text-danger mt-2">{error}</p>}
+        </CardHeader>
+        <Divider className="my-4" />
+        <CardBody className="px-6 pb-6">
+          <form onSubmit={(e) => e.preventDefault()}>
+            {survey.questions.map((q, index) => (
+              <RadioQuestion 
+                key={q.id}
+                question={q}
+                index={index}
+                value={answers[q.id]}
+                onChange={(val) => handleOptionChange(q.id, val)}
+              />
+            ))}
+            
+            <SurveyActions 
+              onSubmit={handleSubmit}
+              onCancel={() => navigate('/browse')}
+              isSubmitting={submitting}
+            />
+          </form>
+        </CardBody>
+      </Card>
     </div>
   );
 }

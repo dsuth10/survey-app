@@ -1,8 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { 
+  Card, 
+  CardHeader, 
+  CardBody, 
+  Input, 
+  Textarea, 
+  Checkbox, 
+  Button, 
+  Divider, 
+  Accordion, 
+  AccordionItem,
+  Tooltip
+} from "@heroui/react";
 import { useAuth } from '../contexts/AuthContext';
 import SharingOptions from '../components/SharingOptions';
+import SurveyActions from '../components/SurveyActions';
 
 export default function CreateSurvey() {
   const { user } = useAuth();
@@ -53,8 +67,11 @@ export default function CreateSurvey() {
     setQuestions(newQuestions);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!title) {
+      setError('Please provide a title');
+      return;
+    }
     setError('');
     setLoading(true);
 
@@ -68,7 +85,7 @@ export default function CreateSurvey() {
       };
 
       await axios.post('/api/surveys', surveyData);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create survey');
     } finally {
@@ -77,90 +94,155 @@ export default function CreateSurvey() {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h2>Create New Survey</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Survey Title:</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Description:</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            style={{ width: '100%', padding: '8px', height: '80px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>
-            <input
-              type="checkbox"
-              checked={isAnonymous}
-              onChange={(e) => setIsAnonymous(e.target.checked)}
-            />
-            Anonymous Responses
-          </label>
-        </div>
+    <div className="max-w-4xl mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-8">Create New Survey</h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <Card isBlurred className="border-none bg-background/60 dark:bg-default-100/50 shadow-sm">
+            <CardBody className="p-6 space-y-4">
+              <Input
+                label="Survey Title"
+                placeholder="Enter a descriptive title"
+                value={title}
+                onValueChange={setTitle}
+                isRequired
+                variant="bordered"
+                labelPlacement="outside"
+              />
+              <Textarea
+                label="Description"
+                placeholder="Optional: Provide more details about the survey"
+                value={description}
+                onValueChange={setDescription}
+                variant="bordered"
+                labelPlacement="outside"
+              />
+              <Checkbox 
+                isSelected={isAnonymous} 
+                onValueChange={setIsAnonymous}
+                color="secondary"
+              >
+                Anonymous Responses
+              </Checkbox>
+            </CardBody>
+          </Card>
 
-        <SharingOptions user={user} sharing={sharing} setSharing={setSharing} />
-
-        <h3 style={{ marginTop: '30px' }}>Questions</h3>
-        {questions.map((q, qIndex) => (
-          <div key={qIndex} style={{ border: '1px solid #eee', padding: '15px', marginBottom: '15px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <label>Question {qIndex + 1}:</label>
-              <button type="button" onClick={() => removeQuestion(qIndex)} style={{ color: 'red' }}>Remove</button>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-bold">Questions</h3>
+              <Button 
+                size="sm" 
+                color="primary" 
+                variant="flat" 
+                onPress={addQuestion}
+              >
+                + Add Question
+              </Button>
             </div>
-            <input
-              type="text"
-              value={q.questionText}
-              onChange={(e) => handleQuestionChange(qIndex, 'questionText', e.target.value)}
-              required
-              placeholder="Enter question text"
-              style={{ width: '100%', padding: '8px', margin: '10px 0' }}
-            />
             
-            <div>
-              <label>Options:</label>
-              {q.options.map((opt, oIndex) => (
-                <div key={oIndex} style={{ display: 'flex', marginBottom: '5px' }}>
-                  <input
-                    type="text"
-                    value={opt}
-                    onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
-                    required
-                    placeholder={`Option ${oIndex + 1}`}
-                    style={{ flexGrow: 1, padding: '5px' }}
-                  />
-                  <button type="button" onClick={() => removeOption(qIndex, oIndex)} style={{ marginLeft: '5px' }}>X</button>
-                </div>
+            <Accordion variant="splitted">
+              {questions.map((q, qIndex) => (
+                <AccordionItem 
+                  key={qIndex} 
+                  aria-label={`Question ${qIndex + 1}`}
+                  title={<span className="font-semibold">{q.questionText || `Untitled Question ${qIndex + 1}`}</span>}
+                  subtitle={`Question ${qIndex + 1}`}
+                >
+                  <div className="space-y-4 p-2">
+                    <div className="flex justify-between items-center gap-4">
+                      <Input
+                        label="Question Text"
+                        value={q.questionText}
+                        onValueChange={(val) => handleQuestionChange(qIndex, 'questionText', val)}
+                        isRequired
+                        variant="underlined"
+                        className="flex-grow"
+                      />
+                      <Button 
+                        isIconOnly 
+                        color="danger" 
+                        variant="light" 
+                        onPress={() => removeQuestion(qIndex)}
+                        disabled={questions.length === 1}
+                      >
+                        🗑️
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-default-500">Options</p>
+                      {q.options.map((opt, oIndex) => (
+                        <div key={oIndex} className="flex gap-2">
+                          <Input
+                            size="sm"
+                            value={opt}
+                            onValueChange={(val) => handleOptionChange(qIndex, oIndex, val)}
+                            isRequired
+                            placeholder={`Option ${oIndex + 1}`}
+                            variant="bordered"
+                          />
+                          <Button 
+                            isIconOnly 
+                            size="sm" 
+                            color="danger" 
+                            variant="light" 
+                            onPress={() => removeOption(qIndex, oIndex)}
+                            disabled={q.options.length <= 2}
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                      <Button 
+                        size="sm" 
+                        variant="light" 
+                        color="primary"
+                        onPress={() => addOption(qIndex)}
+                      >
+                        + Add Option
+                      </Button>
+                    </div>
+                  </div>
+                </AccordionItem>
               ))}
-              <button type="button" onClick={() => addOption(qIndex)}>Add Option</button>
-            </div>
+            </Accordion>
           </div>
-        ))}
-        
-        <button type="button" onClick={addQuestion} style={{ display: 'block', margin: '20px 0' }}>
-          Add Another Question
-        </button>
+        </div>
 
-        <button 
-          type="submit" 
-          disabled={loading}
-          style={{ padding: '10px 20px', background: '#007bff', color: 'white', border: 'none', borderRadius: '5px' }}
-        >
-          {loading ? 'Creating...' : 'Create Survey'}
-        </button>
-        <button type="button" onClick={() => navigate('/')} style={{ marginLeft: '10px' }}>Cancel</button>
-      </form>
+        <div className="space-y-6">
+          <Card isBlurred className="border-none bg-background/60 dark:bg-default-100/50 shadow-sm sticky top-24">
+            <CardHeader>
+              <h3 className="text-lg font-bold">Sharing & Publishing</h3>
+            </CardHeader>
+            <Divider />
+            <CardBody className="space-y-6 p-6">
+              <SharingOptions user={user} sharing={sharing} setSharing={setSharing} />
+              
+              {error && <p className="text-danger text-sm">{error}</p>}
+              
+              <div className="flex flex-col gap-2">
+                <Button 
+                  color="success" 
+                  variant="shadow" 
+                  onPress={handleSubmit}
+                  isLoading={loading}
+                  className="w-full text-white font-bold"
+                >
+                  Create Survey
+                </Button>
+                <Button 
+                  variant="flat" 
+                  onPress={() => navigate('/dashboard')}
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
