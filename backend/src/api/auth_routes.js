@@ -21,6 +21,12 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    if (user.isActive === 0) {
+      return res.status(403).json({ error: 'Account is deactivated' });
+    }
+
+    User.updateLastLogin(user.id);
+
     req.session.userId = user.id;
     req.session.username = user.username;
     req.session.role = user.role;

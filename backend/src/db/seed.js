@@ -21,6 +21,13 @@ async function seed() {
   const classStmt = db.prepare('INSERT INTO classes (name) VALUES (?)');
   const classId = classStmt.run('7A').lastInsertRowid;
 
+  // Create admin (must exist for admin panel)
+  const adminStmt = db.prepare(`
+    INSERT INTO users (username, password, displayName, role)
+    VALUES (?, ?, ?, ?)
+  `);
+  adminStmt.run('admin', hashedPassword, 'Administrator', 'admin');
+
   // Create teacher
   const teacherStmt = db.prepare(`
     INSERT INTO users (username, password, displayName, role)
@@ -43,6 +50,7 @@ async function seed() {
   permStmt.run(classId, 1, 1, 0);
 
   console.log('Database seeded with:');
+  console.log('- Admin: admin / password123');
   console.log('- Teacher: teacher1 / password123');
   console.log('- Student: student1 / password123 (Class 7A)');
 }

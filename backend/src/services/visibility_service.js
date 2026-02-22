@@ -10,11 +10,18 @@ const db = require('../db/connection');
  * - Students see surveys shared with the whole School (sharedWithSchool=1).
  */
 function getVisibleSurveys(user) {
-  if (user.role === 'teacher') {
+  const openCondition = `(
+    (s.opensAt IS NULL AND s.closesAt IS NULL AND s.closedAt IS NULL)
+    OR
+    ((s.opensAt IS NULL OR s.opensAt <= datetime('now')) AND (s.closesAt IS NULL OR s.closesAt >= datetime('now')) AND (s.closedAt IS NULL))
+  )`;
+
+  if (user.role === 'teacher' || user.role === 'admin') {
     return db.prepare(`
       SELECT s.*, u.displayName as creatorName 
       FROM surveys s
       JOIN users u ON s.creatorId = u.id
+      WHERE ${openCondition}
       ORDER BY s.createdAt DESC
     `).all();
   }
@@ -26,15 +33,18 @@ function getVisibleSurveys(user) {
   // 4. Year-wide surveys (if they match the creator's year level)
   
   return db.prepare(`
-    SELECT s.*, u.displayName as creatorName
+    SELECT DISTINCT s.*, u.displayName as creatorName
     FROM surveys s
     JOIN users u ON s.creatorId = u.id
-    WHERE s.creatorId = ? 
+    LEFT JOIN survey_targets st ON st.surveyId = s.id AND st.userId = ?
+    WHERE (${openCondition})
+      AND (s.creatorId = ?
        OR s.sharedWithSchool = 1
        OR (s.sharedWithClass = 1 AND u.classId = ? AND u.classId IS NOT NULL)
        OR (s.sharedWithYearLevel = 1 AND u.yearLevel = ? AND u.yearLevel IS NOT NULL)
+       OR st.userId IS NOT NULL)
     ORDER BY s.createdAt DESC
-  `).all(user.id, user.classId, user.yearLevel);
+  `).all(user.id, user.id, user.classId, user.yearLevel);
 }
 
 module.exports = { getVisibleSurveys };

@@ -2,29 +2,36 @@ const db = require('../db/connection');
 
 const Survey = {
   create: (surveyData) => {
-    const { 
-      creatorId, 
-      title, 
-      description, 
-      isAnonymous, 
-      sharedWithClass, 
-      sharedWithYearLevel, 
-      sharedWithSchool 
+    const {
+      creatorId,
+      title,
+      description,
+      isAnonymous,
+      sharedWithClass,
+      sharedWithYearLevel,
+      sharedWithSchool,
+      sharedWithIndividuals = false,
+      opensAt = null,
+      closesAt = null
     } = surveyData;
 
     const info = db.prepare(`
       INSERT INTO surveys (
-        creatorId, title, description, isAnonymous, 
-        sharedWithClass, sharedWithYearLevel, sharedWithSchool
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        creatorId, title, description, isAnonymous,
+        sharedWithClass, sharedWithYearLevel, sharedWithSchool, sharedWithIndividuals,
+        opensAt, closesAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      creatorId, 
-      title, 
-      description, 
-      isAnonymous ? 1 : 0, 
-      sharedWithClass ? 1 : 0, 
-      sharedWithYearLevel ? 1 : 0, 
-      sharedWithSchool ? 1 : 0
+      creatorId,
+      title,
+      description,
+      isAnonymous ? 1 : 0,
+      sharedWithClass ? 1 : 0,
+      sharedWithYearLevel ? 1 : 0,
+      sharedWithSchool ? 1 : 0,
+      sharedWithIndividuals ? 1 : 0,
+      opensAt || null,
+      closesAt || null
     );
 
     return info.lastInsertRowid;
@@ -54,8 +61,8 @@ const Question = {
           i, 
           q.questionText, 
           q.type || 'multipleChoice', 
-          JSON.stringify(q.options), 
-          q.isRequired ? 1 : 0
+          q.options != null ? JSON.stringify(q.options) : null, 
+          q.isRequired !== false ? 1 : 0
         );
       }
     });
@@ -67,9 +74,23 @@ const Question = {
     const questions = db.prepare('SELECT * FROM questions WHERE surveyId = ? ORDER BY orderIndex ASC').all(surveyId);
     return questions.map(q => ({
       ...q,
-      options: JSON.parse(q.options)
+      options: q.options != null ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : []
     }));
   }
 };
 
-module.exports = { Survey, Question };
+const SurveyTarget = {
+  addMany: (surveyId, userIds) => {
+    if (!userIds || userIds.length === 0) return;
+    const stmt = db.prepare('INSERT OR IGNORE INTO survey_targets (surveyId, userId) VALUES (?, ?)');
+    for (const uid of userIds) {
+      stmt.run(surveyId, uid);
+    }
+  },
+
+  getBySurveyId: (surveyId) => {
+    return db.prepare('SELECT userId FROM survey_targets WHERE surveyId = ?').all(surveyId).map((r) => r.userId);
+  }
+};
+
+module.exports = { Survey, Question, SurveyTarget };

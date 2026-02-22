@@ -8,6 +8,7 @@ const initDb = require('./db/init');
 const authRoutes = require('./api/auth_routes');
 const surveyRoutes = require('./api/survey_routes');
 const classRoutes = require('./api/class_routes');
+const adminRoutes = require('./api/admin_routes');
 
 const app = express();
 const PORT = process.env.PORT || 3006;
@@ -42,6 +43,7 @@ app.use(session({
 app.use('/api/auth', authRoutes);
 app.use('/api/surveys', surveyRoutes);
 app.use('/api/classes', classRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

@@ -83,7 +83,7 @@ export default function ManageClass() {
       <p style={{ color: '#666', marginBottom: '30px' }}>Control what sharing options are available to students in your classes when they create surveys.</p>
 
       {classes.length === 0 ? (
-        <div style={{ padding: '20px', background: '#fff3cd', border: '1px solid #ffeeba', borderRadius: '4px' }}>
+        <div className="p-5 rounded border border-amber-200 bg-amber-50 text-amber-900 dark:bg-amber-200/30 dark:border-amber-300 dark:text-slate-800">
           You don't have any classes assigned to you. Contact an administrator if this is incorrect.
         </div>
       ) : (

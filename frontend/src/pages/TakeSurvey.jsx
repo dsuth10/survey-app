@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardHeader, CardBody, Divider, Button } from "@heroui/react";
 import RadioQuestion from '../components/questions/RadioQuestion';
+import TrueFalseQuestion from '../components/questions/TrueFalseQuestion';
+import RankingQuestion from '../components/questions/RankingQuestion';
 import SurveyActions from '../components/SurveyActions';
 
 export default function TakeSurvey() {
@@ -76,15 +78,40 @@ export default function TakeSurvey() {
         <Divider className="my-4" />
         <CardBody className="px-6 pb-6">
           <form onSubmit={(e) => e.preventDefault()}>
-            {survey.questions.map((q, index) => (
-              <RadioQuestion 
-                key={q.id}
-                question={q}
-                index={index}
-                value={answers[q.id]}
-                onChange={(val) => handleOptionChange(q.id, val)}
-              />
-            ))}
+            {survey.questions.map((q, index) => {
+              const type = q.type || 'multipleChoice';
+              if (type === 'trueFalse') {
+                return (
+                  <TrueFalseQuestion
+                    key={q.id}
+                    question={q}
+                    index={index}
+                    value={answers[q.id]}
+                    onChange={(val) => handleOptionChange(q.id, val)}
+                  />
+                );
+              }
+              if (type === 'ranking') {
+                return (
+                  <RankingQuestion
+                    key={q.id}
+                    question={q}
+                    index={index}
+                    value={answers[q.id]}
+                    onChange={(val) => handleOptionChange(q.id, val)}
+                  />
+                );
+              }
+              return (
+                <RadioQuestion 
+                  key={q.id}
+                  question={q}
+                  index={index}
+                  value={answers[q.id]}
+                  onChange={(val) => handleOptionChange(q.id, val)}
+                />
+              );
+            })}
             
             <SurveyActions 
               onSubmit={handleSubmit}

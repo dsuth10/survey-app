@@ -10,15 +10,18 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 
 import HeaderActions from "./HeaderActions";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function MainLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   const navItems = [
     { label: "Dashboard", path: "/dashboard" },
     { label: "Browse", path: "/browse" },
     { label: "Create Survey", path: "/create" },
+    ...(user?.role === "admin" ? [{ label: "Admin", path: "/admin" }] : []),
   ];
 
   return (

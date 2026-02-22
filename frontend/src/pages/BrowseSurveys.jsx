@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Card, CardHeader, CardBody, Button, Skeleton, Chip, Divider } from "@heroui/react";
+import { Card, CardBody, Button, Skeleton, Chip, Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
 export default function BrowseSurveys() {
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [myResponse, setMyResponse] = useState(null);
+  const [myResponseSurveyTitle, setMyResponseSurveyTitle] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,6 +23,16 @@ export default function BrowseSurveys() {
       setError('Failed to fetch surveys');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openMyResponse = async (survey) => {
+    try {
+      const res = await axios.get(`/api/surveys/${survey.id}/my-response`);
+      setMyResponse(res.data);
+      setMyResponseSurveyTitle(survey.title);
+    } catch (_) {
+      setMyResponse(null);
     }
   };
 
@@ -80,13 +92,24 @@ export default function BrowseSurveys() {
                         Take Survey
                       </Button>
                     ) : (
-                      <Button 
-                        color="default"
-                        variant="flat"
-                        onPress={() => navigate(`/results/${survey.id}`)}
-                      >
-                        View Results
-                      </Button>
+                      <>
+                        <Button 
+                          color="default"
+                          variant="flat"
+                          size="sm"
+                          onPress={() => openMyResponse(survey)}
+                        >
+                          View my response
+                        </Button>
+                        <Button 
+                          color="default"
+                          variant="flat"
+                          size="sm"
+                          onPress={() => navigate(`/results/${survey.id}`)}
+                        >
+                          View Results
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -95,6 +118,34 @@ export default function BrowseSurveys() {
           ))}
         </div>
       )}
+
+      <Modal isOpen={!!myResponse} onOpenChange={(open) => !open && setMyResponse(null)}>
+        <ModalContent>
+          <ModalHeader>My response: {myResponseSurveyTitle}</ModalHeader>
+          <ModalBody>
+            {myResponse && (
+              <div className="space-y-3">
+                <p className="text-sm text-default-500">Submitted: {new Date(myResponse.submittedAt).toLocaleString()}</p>
+                {myResponse.answers.map((a) => (
+                  <div key={a.questionId} className="p-2 rounded bg-default-100">
+                    <p className="font-medium text-sm">{a.questionText}</p>
+                    <p className="text-default-600">
+                  {(() => {
+                    try {
+                      if (typeof a.selectedOption === 'string' && a.selectedOption.startsWith('[')) {
+                        return JSON.parse(a.selectedOption).join(' → ');
+                      }
+                    } catch (_) {}
+                    return a.selectedOption;
+                  })()}
+                </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

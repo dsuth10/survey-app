@@ -9,14 +9,16 @@ import TakeSurvey from './pages/TakeSurvey';
 import ResultsDashboard from './pages/ResultsDashboard';
 import ManageClass from './pages/ManageClass';
 import Dashboard from './pages/Dashboard';
+import Admin from './pages/Admin';
 import MainLayout from './components/MainLayout';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, noLayout }) => {
   const { user, loading } = useAuth();
-  
+
   if (loading) return <div>Loading...</div>;
   if (!user) return <Navigate to="/login" />;
-  
+
+  if (noLayout) return <>{children}</>;
   return <MainLayout>{children}</MainLayout>;
 };
 
@@ -31,13 +33,13 @@ function App() {
               path="/" 
               element={<Navigate to="/dashboard" replace />} 
             />
-            <Route 
-              path="/dashboard" 
+            <Route
+              path="/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute noLayout>
                   <Dashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
             <Route 
               path="/create" 
@@ -76,6 +78,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ManageClass />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute>
+                  <Admin />
                 </ProtectedRoute>
               } 
             />

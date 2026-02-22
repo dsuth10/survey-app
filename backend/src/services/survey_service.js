@@ -1,5 +1,35 @@
-const { Survey, Question } = require('../models/survey');
+const { Survey, Question, SurveyTarget } = require('../models/survey');
 const Class = require('../models/class');
+
+const VALID_QUESTION_TYPES = ['multipleChoice', 'trueFalse', 'ranking', 'text'];
+
+function validateQuestion(q, index) {
+  const type = q.type || 'multipleChoice';
+  if (!VALID_QUESTION_TYPES.includes(type)) {
+    throw new Error(`Question ${index + 1}: invalid type "${type}". Use multipleChoice, trueFalse, ranking, or text.`);
+  }
+  if (!q.questionText || String(q.questionText).trim() === '') {
+    throw new Error(`Question ${index + 1}: question text is required.`);
+  }
+  const options = q.options;
+  if (type === 'trueFalse') {
+    if (!options || !Array.isArray(options)) {
+      q.options = ['True', 'False'];
+    }
+  } else if (type === 'ranking') {
+    if (!options || !Array.isArray(options) || options.length < 2) {
+      throw new Error(`Question ${index + 1}: ranking must have at least 2 options.`);
+    }
+    if (options.some((o) => typeof o !== 'string' || o.trim() === '')) {
+      throw new Error(`Question ${index + 1}: ranking options must be non-empty strings.`);
+    }
+  } else if (type === 'multipleChoice') {
+    if (!options || !Array.isArray(options) || options.length < 1) {
+      throw new Error(`Question ${index + 1}: multiple choice must have at least one option.`);
+    }
+  }
+  // text type: options can be null/empty
+}
 
 function validateDistribution(user, surveyData, permissions) {
   if (user.role === 'teacher') return;
@@ -26,23 +56,34 @@ async function createSurvey(user, surveyData) {
     throw new Error('Survey must have a title and at least one question');
   }
 
+  questions.forEach((q, i) => validateQuestion(q, i));
+
   // Validate distribution permissions if student
   if (user.role === 'student') {
     const permissions = Class.getWithPermissions(user.classId);
     validateDistribution(user, surveyData, permissions);
   }
 
+  const targetUserIds = Array.isArray(surveyData.targetUserIds) ? surveyData.targetUserIds.map((id) => parseInt(id, 10)).filter((n) => !Number.isNaN(n)) : [];
+  const sharedWithIndividuals = targetUserIds.length > 0;
+
   const surveyId = Survey.create({
     creatorId: user.id,
-    ...surveyData
+    ...surveyData,
+    sharedWithIndividuals
   });
 
   Question.createMany(surveyId, questions);
+  if (targetUserIds.length > 0) {
+    SurveyTarget.addMany(surveyId, targetUserIds);
+  }
 
   return surveyId;
 }
 
 module.exports = {
   createSurvey,
-  validateDistribution
+  validateDistribution,
+  validateQuestion,
+  VALID_QUESTION_TYPES
 };
