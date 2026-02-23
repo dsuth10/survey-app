@@ -20,6 +20,8 @@ build/
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 coverage/
 
 # Cursor / agent (optional: remove these lines to track them)
@@ -33,4 +35,7 @@ mcps/
 .vscode/*
 !.vscode/extensions.json
 *.suo
+*.ntvs*
+*.njsproj
+*.sln
 *.sw?
