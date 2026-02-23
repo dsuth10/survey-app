@@ -76,13 +76,15 @@ export default function StudentDashboard() {
             <span className="material-symbols-outlined">bar_chart</span>
             <span>Results</span>
           </button>
-          <button type="button" onClick={() => navigate("/create")} className="w-full flex items-center justify-center gap-2 mt-6 py-3 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all">
-            <span className="material-symbols-outlined text-lg">add_circle</span>
-            <span>Create New Survey</span>
-          </button>
         </nav>
         <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
+          <button type="button" onClick={() => navigate("/create")} className="w-full bg-primary hover:bg-primary/90 text-white py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-primary/20">
+            <span className="material-symbols-outlined text-sm">add</span>
+            Create New Survey
+          </button>
+        </div>
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50">
+          <div className="rounded-xl p-4">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Support</p>
             <button className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">
               <span className="material-symbols-outlined text-lg">help_center</span>

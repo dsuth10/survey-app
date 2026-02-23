@@ -8,7 +8,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -27,15 +27,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 px-4">
-      <Card isBlurred className="max-w-md w-full border-none bg-background/60 dark:bg-default-100/50 shadow-2xl p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary-100 via-background to-secondary-100 px-4">
+      <Card
+        isBlurred
+        className="max-w-md w-full border-1 border-white/20 bg-background/40 backdrop-blur-xl dark:bg-default-100/20 shadow-2xl p-4"
+      >
         <CardHeader className="flex flex-col gap-1 items-center pb-8">
-          <h2 className="text-3xl font-bold text-primary">Survey App</h2>
-          <p className="text-default-500">Welcome back, please sign in</p>
+          <h2 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            Survey App
+          </h2>
+          <p className="text-default-500 font-medium">Welcome back, please sign in</p>
         </CardHeader>
         <CardBody>
           {error && (
-            <div className="bg-danger-50 text-danger p-3 rounded-lg text-sm mb-6 border border-danger-200">
+            <div className="bg-danger/10 text-danger p-4 rounded-xl text-sm mb-6 border border-danger/20 backdrop-blur-md flex items-center gap-3">
+              <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-danger animate-pulse" />
               {error}
             </div>
           )}
@@ -43,36 +49,32 @@ export default function LoginPage() {
             <Input
               name="username"
               type="text"
-              label="Username"
-              placeholder="Enter your username"
+              placeholder="Username"
               variant="bordered"
               isRequired
-              labelPlacement="outside"
               className="max-w-full"
             />
             <Input
               name="password"
               type="password"
-              label="Password"
-              placeholder="Enter your password"
+              placeholder="Password"
               variant="bordered"
               isRequired
-              labelPlacement="outside"
               className="max-w-full"
             />
-            <Button 
-              type="submit" 
-              color="primary" 
-              variant="shadow" 
-              className="w-full h-12 text-lg font-bold"
+            <Button
+              type="submit"
+              color="primary"
+              variant="shadow"
+              className="w-full h-12 text-lg font-bold transition-transform active:scale-95"
               isLoading={loading}
             >
               Sign In
             </Button>
           </form>
         </CardBody>
-        <CardFooter className="justify-center pt-8">
-          <p className="text-default-400 text-sm">Educational Feedback Platform</p>
+        <CardFooter className="justify-center pt-8 border-t border-divider/50">
+          <p className="text-default-400 text-xs font-medium uppercase tracking-widest">Educational Feedback Platform</p>
         </CardFooter>
       </Card>
     </div>
