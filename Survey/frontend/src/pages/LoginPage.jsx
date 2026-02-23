@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, CardHeader, CardBody, Input, Button, CardFooter } from "@heroui/react";
+import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 
 export default function LoginPage() {
   const [error, setError] = useState('');
@@ -40,35 +40,41 @@ export default function LoginPage() {
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-6">
-            <Input
-              name="username"
-              type="text"
-              label="Username"
-              placeholder="Enter your username"
-              variant="bordered"
-              isRequired
-              labelPlacement="outside"
-              className="max-w-full"
-            />
-            <Input
-              name="password"
-              type="password"
-              label="Password"
-              placeholder="Enter your password"
-              variant="bordered"
-              isRequired
-              labelPlacement="outside"
-              className="max-w-full"
-            />
-            <Button 
-              type="submit" 
-              color="primary" 
-              variant="shadow" 
-              className="w-full h-12 text-lg font-bold"
-              isLoading={loading}
+            <div className="flex flex-col gap-2">
+              <label htmlFor="login-username" className="text-sm font-medium text-foreground">
+                Username
+              </label>
+              <input
+                id="login-username"
+                name="username"
+                type="text"
+                required
+                placeholder="Enter your username"
+                autoComplete="username"
+                className="w-full h-10 px-3 rounded-medium border border-default-200 bg-transparent text-foreground placeholder:text-foreground-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="login-password" className="text-sm font-medium text-foreground">
+                Password
+              </label>
+              <input
+                id="login-password"
+                name="password"
+                type="password"
+                required
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                className="w-full h-10 px-3 rounded-medium border border-default-200 bg-transparent text-foreground placeholder:text-foreground-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 text-lg font-bold rounded-lg bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-70 disabled:pointer-events-none transition-colors"
             >
-              Sign In
-            </Button>
+              {loading ? 'Signing in…' : 'Sign In'}
+            </button>
           </form>
         </CardBody>
         <CardFooter className="justify-center pt-8">
