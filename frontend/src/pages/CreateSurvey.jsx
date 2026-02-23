@@ -75,7 +75,7 @@ export default function CreateSurvey() {
       if (d.opensAt) setOpensAt(d.opensAt);
       if (d.closesAt) setClosesAt(d.closesAt);
       if (d.targetClassId) setTargetClassId(d.targetClassId);
-    } catch (_) {}
+    } catch (_) { }
   }, [isEdit, surveyId]);
 
   useEffect(() => {
@@ -153,10 +153,10 @@ export default function CreateSurvey() {
 
   const filteredStudents = studentSearch.trim()
     ? assignableStudents.filter(
-        (s) =>
-          (s.displayName || "").toLowerCase().includes(studentSearch.toLowerCase()) ||
-          (s.username || "").toLowerCase().includes(studentSearch.toLowerCase())
-      )
+      (s) =>
+        (s.displayName || "").toLowerCase().includes(studentSearch.toLowerCase()) ||
+        (s.username || "").toLowerCase().includes(studentSearch.toLowerCase())
+    )
     : assignableStudents;
 
   const toggleTargetStudent = (student) => {
@@ -191,6 +191,7 @@ export default function CreateSurvey() {
       targetUserIds: sharing.targetUserIds || [],
       opensAt: opensAt || null,
       closesAt: closesAt || null,
+      targetClassId: targetClassId || null,
     };
   };
 
@@ -237,6 +238,7 @@ export default function CreateSurvey() {
   };
 
   const displayName = user?.displayName || user?.username || "User";
+  const isStudent = user?.role === "student";
 
   if (loadingData) {
     return (
@@ -427,28 +429,28 @@ export default function CreateSurvey() {
             </button>
             <div className="h-20" />
 
-          {previewOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setPreviewOpen(false)}>
-              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold">Preview</h3>
-                  <button type="button" onClick={() => setPreviewOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
-                    <span className="material-symbols-outlined">close</span>
-                  </button>
-                </div>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white">{title || "Untitled"}</h4>
-                {description && <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{description}</p>}
-                <div className="mt-6 space-y-4">
-                  {questions.map((q, i) => (
-                    <div key={i} className="border-b border-slate-100 dark:border-slate-800 pb-4">
-                      <p className="font-semibold text-slate-800 dark:text-slate-100">{q.questionText || `Question ${i + 1}`}</p>
-                      <p className="text-xs text-slate-400 mt-1">{QUESTION_TYPES.find((t) => t.value === (q.type || "multipleChoice"))?.label}</p>
-                    </div>
-                  ))}
+            {previewOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setPreviewOpen(false)}>
+                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold">Preview</h3>
+                    <button type="button" onClick={() => setPreviewOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
+                      <span className="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                  <h4 className="text-xl font-bold text-slate-900 dark:text-white">{title || "Untitled"}</h4>
+                  {description && <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{description}</p>}
+                  <div className="mt-6 space-y-4">
+                    {questions.map((q, i) => (
+                      <div key={i} className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                        <p className="font-semibold text-slate-800 dark:text-slate-100">{q.questionText || `Question ${i + 1}`}</p>
+                        <p className="text-xs text-slate-400 mt-1">{QUESTION_TYPES.find((t) => t.value === (q.type || "multipleChoice"))?.label}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
           </div>
         </div>
 
@@ -516,7 +518,7 @@ export default function CreateSurvey() {
                 Targeting
               </h3>
               <div className="space-y-4">
-                {classes.length > 0 && (
+                {!isStudent && classes.length > 0 && (
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-slate-500">Assign to Class</label>
                     <select
@@ -541,14 +543,18 @@ export default function CreateSurvey() {
                       <input type="checkbox" checked={sharing.sharedWithClass} onChange={(e) => setSharing((s) => ({ ...s, sharedWithClass: e.target.checked }))} className="rounded text-primary focus:ring-primary" />
                       <span className="text-xs font-medium">Class</span>
                     </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input type="checkbox" checked={sharing.sharedWithYearLevel} onChange={(e) => setSharing((s) => ({ ...s, sharedWithYearLevel: e.target.checked }))} className="rounded text-primary focus:ring-primary" />
-                      <span className="text-xs font-medium">Year Level</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input type="checkbox" checked={sharing.sharedWithSchool} onChange={(e) => setSharing((s) => ({ ...s, sharedWithSchool: e.target.checked }))} className="rounded text-primary focus:ring-primary" />
-                      <span className="text-xs font-medium">School</span>
-                    </label>
+                    {!isStudent && (
+                      <>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input type="checkbox" checked={sharing.sharedWithYearLevel} onChange={(e) => setSharing((s) => ({ ...s, sharedWithYearLevel: e.target.checked }))} className="rounded text-primary focus:ring-primary" />
+                          <span className="text-xs font-medium">Year Level</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input type="checkbox" checked={sharing.sharedWithSchool} onChange={(e) => setSharing((s) => ({ ...s, sharedWithSchool: e.target.checked }))} className="rounded text-primary focus:ring-primary" />
+                          <span className="text-xs font-medium">School</span>
+                        </label>
+                      </>
+                    )}
                   </div>
                 </div>
 

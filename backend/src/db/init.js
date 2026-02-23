@@ -50,9 +50,11 @@ function initDb() {
       sharedWithYearLevel BOOLEAN DEFAULT 0,
       sharedWithSchool BOOLEAN DEFAULT 0,
       sharedWithIndividuals BOOLEAN DEFAULT 0,
+      targetClassId INTEGER,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       closedAt DATETIME,
-      FOREIGN KEY (creatorId) REFERENCES users(id)
+      FOREIGN KEY (creatorId) REFERENCES users(id),
+      FOREIGN KEY (targetClassId) REFERENCES classes(id)
     );
 
     CREATE TABLE IF NOT EXISTS survey_targets (
@@ -115,6 +117,9 @@ function initDb() {
   }
   if (!surveyColumns.includes('closesAt')) {
     db.exec('ALTER TABLE surveys ADD COLUMN closesAt DATETIME');
+  }
+  if (!surveyColumns.includes('targetClassId')) {
+    db.exec('ALTER TABLE surveys ADD COLUMN targetClassId INTEGER');
   }
 
   // Migrations: add new columns to users if they don't exist (existing DBs)

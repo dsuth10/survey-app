@@ -62,6 +62,10 @@ async function createSurvey(user, surveyData) {
   if (user.role === 'student') {
     const permissions = Class.getWithPermissions(user.classId);
     validateDistribution(user, surveyData, permissions);
+    // Students can only share with their own class by default if they select "Share with Class"
+    if (surveyData.sharedWithClass) {
+      surveyData.targetClassId = user.classId;
+    }
   }
 
   const targetUserIds = Array.isArray(surveyData.targetUserIds) ? surveyData.targetUserIds.map((id) => parseInt(id, 10)).filter((n) => !Number.isNaN(n)) : [];
@@ -70,6 +74,7 @@ async function createSurvey(user, surveyData) {
   const surveyId = Survey.create({
     creatorId: user.id,
     ...surveyData,
+    targetClassId: surveyData.targetClassId || null,
     sharedWithIndividuals
   });
 

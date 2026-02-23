@@ -95,13 +95,13 @@ router.get('/', isAuthenticated, async (req, res) => {
       yearLevel: req.session.yearLevel
     };
     const surveys = getVisibleSurveys(user);
-    
+
     // Check if user has responded to each survey
     const surveysWithStatus = surveys.map(s => ({
       ...s,
       hasResponded: Response.hasUserResponded(s.id, user.id)
     }));
-    
+
     res.json(surveysWithStatus);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -189,7 +189,8 @@ router.post('/', isAuthenticated, async (req, res) => {
     const user = {
       id: req.session.userId,
       role: req.session.role,
-      classId: req.session.classId // Assuming this is set in session during login
+      classId: req.session.classId,
+      yearLevel: req.session.yearLevel
     };
 
     const surveyId = await createSurvey(user, req.body);

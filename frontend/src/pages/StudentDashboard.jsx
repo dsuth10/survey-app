@@ -26,11 +26,13 @@ export default function StudentDashboard() {
   }, [user?.id]);
 
   const completedSurveys = surveys.filter((s) => s.hasResponded);
-  const pendingSurveys = surveys.filter((s) => !s.hasResponded && !s.closedAt);
+  const myCreatedSurveys = surveys.filter((s) => s.creatorId === user?.id);
+  const pendingSurveys = surveys.filter((s) => !s.hasResponded && !s.closedAt && s.creatorId !== user?.id);
   const displayName = user?.displayName || user?.username || "Student";
   const firstName = displayName.split(/\s+/)[0] || displayName;
 
   const handleTakeSurvey = (id) => navigate(`/take-survey/${id}`);
+  const handleViewResults = (id) => navigate(`/results/${id}`);
   const handleViewAll = () => navigate("/browse");
 
   const formatDue = (survey) => {
@@ -74,9 +76,9 @@ export default function StudentDashboard() {
             <span className="material-symbols-outlined">bar_chart</span>
             <span>Results</span>
           </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left">
-            <span className="material-symbols-outlined">settings</span>
-            <span>Settings</span>
+          <button type="button" onClick={() => navigate("/create")} className="w-full flex items-center justify-center gap-2 mt-6 py-3 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all">
+            <span className="material-symbols-outlined text-lg">add_circle</span>
+            <span>Create New Survey</span>
           </button>
         </nav>
         <div className="p-4 border-t border-slate-200 dark:border-slate-800">
@@ -226,6 +228,46 @@ export default function StudentDashboard() {
               )}
             </div>
           </section>
+
+          {myCreatedSurveys.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold">My Created Surveys</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {myCreatedSurveys.map((s) => (
+                  <div
+                    key={s.id}
+                    className="group bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col hover:border-primary transition-all"
+                  >
+                    <div className="p-5 flex-1 flex flex-col">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{s.title}</h4>
+                        <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase">Author</span>
+                      </div>
+                      <div className="mt-2 space-y-2">
+                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                          <span className="material-symbols-outlined text-sm">event</span>
+                          <span>Created {new Date(s.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                          <span className="material-symbols-outlined text-sm">groups</span>
+                          <span>{s.sharedWithSchool ? "School" : s.sharedWithYearLevel ? "Year Level" : "Class"}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleViewResults(s.id)}
+                        className="w-full mt-6 border border-primary text-primary py-2.5 rounded-lg font-bold text-sm hover:bg-primary/5 transition-all"
+                      >
+                        View Results
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">

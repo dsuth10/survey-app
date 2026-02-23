@@ -12,15 +12,16 @@ const Survey = {
       sharedWithSchool,
       sharedWithIndividuals = false,
       opensAt = null,
-      closesAt = null
+      closesAt = null,
+      targetClassId = null
     } = surveyData;
 
     const info = db.prepare(`
       INSERT INTO surveys (
         creatorId, title, description, isAnonymous,
         sharedWithClass, sharedWithYearLevel, sharedWithSchool, sharedWithIndividuals,
-        opensAt, closesAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        opensAt, closesAt, targetClassId
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       creatorId,
       title,
@@ -31,7 +32,8 @@ const Survey = {
       sharedWithSchool ? 1 : 0,
       sharedWithIndividuals ? 1 : 0,
       opensAt || null,
-      closesAt || null
+      closesAt || null,
+      targetClassId || null
     );
 
     return info.lastInsertRowid;
@@ -57,11 +59,11 @@ const Question = {
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
         insert.run(
-          surveyId, 
-          i, 
-          q.questionText, 
-          q.type || 'multipleChoice', 
-          q.options != null ? JSON.stringify(q.options) : null, 
+          surveyId,
+          i,
+          q.questionText,
+          q.type || 'multipleChoice',
+          q.options != null ? JSON.stringify(q.options) : null,
           q.isRequired !== false ? 1 : 0
         );
       }
