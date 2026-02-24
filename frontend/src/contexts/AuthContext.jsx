@@ -36,6 +36,24 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // Global response interceptor to handle 401s
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 401) {
+          // If we get a 401 and we're not already on the login page, log out locally
+          if (!window.location.pathname.includes('/login')) {
+            setUser(null);
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => axios.interceptors.response.eject(interceptor);
+  }, []);
+
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
