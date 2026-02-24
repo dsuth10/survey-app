@@ -943,10 +943,10 @@ export default function AdminDashboard() {
       </Modal>
 
       {/* Edit Class Modal */}
-      <Modal isOpen={editClassModal.isOpen} onOpenChange={editClassModal.onOpenChange}>
-        <ModalContent>
+      <Modal isOpen={editClassModal.isOpen} onOpenChange={editClassModal.onOpenChange} scrollBehavior="inside">
+        <ModalContent classNames={{ base: 'max-h-[90vh]' }}>
           <ModalHeader>Edit class</ModalHeader>
-          <ModalBody>
+          <ModalBody classNames={{ base: 'flex flex-col gap-4 overflow-visible' }}>
             <Input label="Class name" value={classForm.name} onValueChange={(v) => setClassForm((p) => ({ ...p, name: v }))} isRequired />
             <Select label="Teacher" selectedKeys={[String(classForm.teacherId)]} onSelectionChange={(keys) => setClassForm((p) => ({ ...p, teacherId: Array.from(keys)[0] ?? "none" }))}>
               <SelectItem key="none">None</SelectItem>
@@ -963,16 +963,16 @@ export default function AdminDashboard() {
       </Modal>
 
       {/* Class Students Modal */}
-      <Modal isOpen={classStudentsModal.isOpen} onOpenChange={classStudentsModal.onOpenChange} size="lg">
-        <ModalContent>
-          <ModalHeader>Manage students in class</ModalHeader>
-          <ModalBody>
-            <p className="text-sm text-default-500 mb-2">Select students to assign to this class.</p>
-            <div className="max-h-[60vh] overflow-y-auto space-y-2">
+      <Modal isOpen={classStudentsModal.isOpen} onOpenChange={classStudentsModal.onOpenChange} size="lg" scrollBehavior="inside">
+        <ModalContent classNames={{ base: 'max-h-[90vh] flex flex-col' }}>
+          <ModalHeader className="flex-shrink-0">Manage students in class</ModalHeader>
+          <ModalBody classNames={{ base: 'flex flex-col gap-3 overflow-y-auto min-h-0 flex-1' }}>
+            <p className="text-sm text-default-500 flex-shrink-0">Select students to assign to this class.</p>
+            <div className="space-y-2 flex-1 min-h-0">
               {students.map((s) => (
-                <label key={s.id} className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-default-100">
-                  <input type="checkbox" checked={classStudentIds.includes(s.id)} onChange={(e) => (e.target.checked ? setClassStudentIds((prev) => [...prev, s.id]) : setClassStudentIds((prev) => prev.filter((id) => id !== s.id)))} />
-                  <span>{s.displayName || s.username} ({s.username})</span>
+                <label key={s.id} className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-default-100 border border-transparent hover:border-default-200">
+                  <input type="checkbox" checked={classStudentIds.includes(s.id)} onChange={(e) => (e.target.checked ? setClassStudentIds((prev) => [...prev, s.id]) : setClassStudentIds((prev) => prev.filter((id) => id !== s.id)))} className="mt-0.5 flex-shrink-0" />
+                  <span className="truncate">{s.displayName || s.username} ({s.username})</span>
                 </label>
               ))}
             </div>

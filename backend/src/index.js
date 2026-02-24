@@ -35,6 +35,7 @@ app.use(session({
   cookie: {
     secure: false, // Set to false since LAN apps usually run on HTTP
     httpOnly: true,
+    sameSite: 'lax', // so cookies work when frontend is proxied (e.g. Vite dev)
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));

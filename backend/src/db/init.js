@@ -132,6 +132,30 @@ function initDb() {
     db.exec('ALTER TABLE users ADD COLUMN isActive BOOLEAN DEFAULT 1');
   }
 
+  // Migration: if users table was created with old role CHECK (no 'admin'), recreate it
+  const usersTableDef = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get();
+  if (usersTableDef && usersTableDef.sql && !usersTableDef.sql.includes("'admin'")) {
+    db.exec('PRAGMA foreign_keys = OFF');
+    db.exec('DROP TABLE users');
+    db.exec(`
+      CREATE TABLE users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL,
+        displayName TEXT,
+        role TEXT CHECK(role IN ('student', 'teacher', 'admin')) NOT NULL,
+        classId INTEGER,
+        yearLevel TEXT,
+        lastLogin DATETIME,
+        isActive BOOLEAN DEFAULT 1,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (classId) REFERENCES classes(id)
+      )
+    `);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_users_classId ON users(classId)');
+    db.exec('PRAGMA foreign_keys = ON');
+  }
+
   console.log('Database initialized at:', dbPath);
   return db;
 }
