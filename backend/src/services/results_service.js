@@ -7,27 +7,58 @@ function getSurveyResults(surveyId) {
   const questions = db.prepare('SELECT * FROM questions WHERE surveyId = ? ORDER BY orderIndex ASC').all(surveyId);
   const totalResponses = db.prepare('SELECT COUNT(*) as count FROM responses WHERE surveyId = ?').get(surveyId).count;
 
+  // Fetch all question answers in bulk to avoid N+1 queries
+  const allAnswers = db.prepare(`
+    SELECT sa.questionId, sa.selectedOption, COUNT(*) as count
+    FROM survey_answers sa
+    JOIN questions q ON sa.questionId = q.id
+    WHERE q.surveyId = ?
+    GROUP BY sa.questionId, sa.selectedOption
+  `).all(surveyId);
+
+  const answerMapByQuestion = allAnswers.reduce((acc, row) => {
+    if (!acc[row.questionId]) acc[row.questionId] = {};
+    acc[row.questionId][row.selectedOption] = row.count;
+    return acc;
+  }, {});
+
+  // Fetch all ranking answers in bulk to avoid N+1 queries
+  const allRankingAnswers = db.prepare(`
+    SELECT sa.questionId, sa.selectedOption
+    FROM survey_answers sa
+    JOIN questions q ON sa.questionId = q.id
+    WHERE q.surveyId = ? AND q.type = 'ranking'
+  `).all(surveyId);
+
+  const rankingAnswerMap = allRankingAnswers.reduce((acc, row) => {
+    if (!acc[row.questionId]) acc[row.questionId] = [];
+    acc[row.questionId].push(row.selectedOption);
+    return acc;
+  }, {});
+
   const results = questions.map(q => {
     const options = q.options != null ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : [];
     const type = q.type || 'multipleChoice';
+    const counts = {};
+    options.forEach(opt => counts[opt] = 0);
+
+    const questionAnswers = answerMapByQuestion[q.id] || {};
 
     if (type === 'ranking') {
-      const answers = db.prepare(`
-        SELECT selectedOption FROM survey_answers WHERE questionId = ?
-      `).all(q.id);
+      const questionRankingAnswers = rankingAnswerMap[q.id] || [];
+
       const rankSums = {};
       const rankCounts = {};
       options.forEach(opt => {
         rankSums[opt] = 0;
         rankCounts[opt] = 0;
       });
-      answers.forEach((row) => {
+
+      questionRankingAnswers.forEach((selectedOption) => {
         let order;
         try {
-          order = typeof row.selectedOption === 'string' ? JSON.parse(row.selectedOption) : row.selectedOption;
-        } catch (_) {
-          return;
-        }
+          order = typeof selectedOption === 'string' ? JSON.parse(selectedOption) : selectedOption;
+        } catch (_) { return; }
         if (!Array.isArray(order)) return;
         order.forEach((item, zeroIndex) => {
           const rank = zeroIndex + 1;
@@ -37,6 +68,7 @@ function getSurveyResults(surveyId) {
           }
         });
       });
+
       const rankingSummary = options.map((opt) => ({
         option: opt,
         averageRank: rankCounts[opt] ? (rankSums[opt] / rankCounts[opt]).toFixed(2) : null,
@@ -48,6 +80,7 @@ function getSurveyResults(surveyId) {
         if (Number.isNaN(br)) return -1;
         return ar - br;
       });
+
       return {
         questionId: q.id,
         questionText: q.questionText,
@@ -57,19 +90,8 @@ function getSurveyResults(surveyId) {
       };
     }
 
-    const answers = db.prepare(`
-      SELECT selectedOption, COUNT(*) as count 
-      FROM survey_answers 
-      WHERE questionId = ? 
-      GROUP BY selectedOption
-    `).all(q.id);
-
-    const counts = {};
-    options.forEach(opt => {
-      counts[opt] = 0;
-    });
-    answers.forEach(ans => {
-      counts[ans.selectedOption] = ans.count;
+    Object.keys(questionAnswers).forEach(option => {
+      counts[option] = questionAnswers[option];
     });
 
     return {
@@ -90,22 +112,27 @@ function getSurveyResults(surveyId) {
     ORDER BY r.submittedAt DESC
   `).all(surveyId);
 
-  const detailedResponses = responses.map(r => {
-    const answers = db.prepare(`
-      SELECT questionId, selectedOption 
-      FROM survey_answers 
-      WHERE responseId = ?
-    `).all(r.id);
+  // Fetch all answers for all responses in one go to avoid N+1 queries
+  const allDetailedAnswers = db.prepare(`
+    SELECT sa.responseId, sa.questionId, sa.selectedOption
+    FROM survey_answers sa
+    JOIN responses r ON sa.responseId = r.id
+    WHERE r.surveyId = ?
+  `).all(surveyId);
 
+  const detailedAnswerMap = allDetailedAnswers.reduce((acc, curr) => {
+    if (!acc[curr.responseId]) acc[curr.responseId] = {};
+    acc[curr.responseId][curr.questionId] = curr.selectedOption;
+    return acc;
+  }, {});
+
+  const detailedResponses = responses.map(r => {
     return {
       id: r.id,
       submittedAt: r.submittedAt,
       // If survey is anonymous, mask the identity unless the requester is a teacher (handled in route)
       userDisplayName: survey.isAnonymous ? 'Anonymous' : (r.displayName || r.username),
-      answers: answers.reduce((acc, curr) => {
-        acc[curr.questionId] = curr.selectedOption;
-        return acc;
-      }, {})
+      answers: detailedAnswerMap[r.id] || {}
     };
   });
 

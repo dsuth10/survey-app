@@ -17,6 +17,16 @@ const Response = {
     return !!response;
   },
 
+  hasUserRespondedToMany: (surveyIds, userId) => {
+    if (!surveyIds || surveyIds.length === 0) return new Set();
+    const placeholders = surveyIds.map(() => '?').join(',');
+    const results = db.prepare(`
+      SELECT surveyId FROM responses 
+      WHERE userId = ? AND surveyId IN (${placeholders})
+    `).all(userId, ...surveyIds);
+    return new Set(results.map(r => r.surveyId));
+  },
+
   findBySurveyId: (surveyId) => {
     return db.prepare('SELECT * FROM responses WHERE surveyId = ?').all(surveyId);
   }

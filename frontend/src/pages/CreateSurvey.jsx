@@ -20,6 +20,11 @@ function getInitials(name) {
     .slice(0, 2);
 }
 
+function getLocalIsoString(date = new Date()) {
+  const tzOffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+}
+
 export default function CreateSurvey() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -39,7 +44,7 @@ export default function CreateSurvey() {
     targetUserIds: [],
   });
   const [targetClassId, setTargetClassId] = useState("");
-  const [opensAt, setOpensAt] = useState("");
+  const [opensAt, setOpensAt] = useState(getLocalIsoString());
   const [closesAt, setClosesAt] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");

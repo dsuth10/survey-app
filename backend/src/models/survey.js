@@ -85,9 +85,14 @@ const SurveyTarget = {
   addMany: (surveyId, userIds) => {
     if (!userIds || userIds.length === 0) return;
     const stmt = db.prepare('INSERT OR IGNORE INTO survey_targets (surveyId, userId) VALUES (?, ?)');
-    for (const uid of userIds) {
-      stmt.run(surveyId, uid);
-    }
+
+    const insertMany = db.transaction((surveyId, userIds) => {
+      for (const uid of userIds) {
+        stmt.run(surveyId, uid);
+      }
+    });
+
+    insertMany(surveyId, userIds);
   },
 
   getBySurveyId: (surveyId) => {

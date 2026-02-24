@@ -95,11 +95,12 @@ router.get('/', isAuthenticated, async (req, res) => {
       yearLevel: req.session.yearLevel
     };
     const surveys = getVisibleSurveys(user);
+    const surveyIds = surveys.map(s => s.id);
+    const respondedSurveyIds = Response.hasUserRespondedToMany(surveyIds, user.id);
 
-    // Check if user has responded to each survey
     const surveysWithStatus = surveys.map(s => ({
       ...s,
-      hasResponded: Response.hasUserResponded(s.id, user.id)
+      hasResponded: respondedSurveyIds.has(s.id)
     }));
 
     res.json(surveysWithStatus);

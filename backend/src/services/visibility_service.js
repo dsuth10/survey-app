@@ -13,7 +13,7 @@ function getVisibleSurveys(user) {
   const openCondition = `(
     (s.opensAt IS NULL AND s.closesAt IS NULL AND s.closedAt IS NULL)
     OR
-    ((s.opensAt IS NULL OR s.opensAt <= datetime('now')) AND (s.closesAt IS NULL OR s.closesAt >= datetime('now')) AND (s.closedAt IS NULL))
+    ((s.opensAt IS NULL OR datetime(s.opensAt) <= datetime('now', 'localtime')) AND (s.closesAt IS NULL OR datetime(s.closesAt) >= datetime('now', 'localtime')) AND (s.closedAt IS NULL))
   )`;
 
   if (user.role === 'teacher' || user.role === 'admin') {
