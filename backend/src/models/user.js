@@ -39,7 +39,36 @@ const User = {
       sql += ' AND (u.isActive = 1 OR u.isActive IS NULL)';
     }
     sql += ' ORDER BY u.role, u.displayName, u.username';
+    if (opts.limit) {
+      sql += ' LIMIT ?';
+      params.push(parseInt(opts.limit, 10));
+      if (opts.offset) {
+        sql += ' OFFSET ?';
+        params.push(parseInt(opts.offset, 10));
+      }
+    }
     return db.prepare(sql).all(...params);
+  },
+
+  countAll: (opts = {}) => {
+    let sql = 'SELECT COUNT(*) as total FROM users u WHERE 1=1';
+    const params = [];
+    if (opts.role) {
+      sql += ' AND u.role = ?';
+      params.push(opts.role);
+    }
+    if (opts.classId != null) {
+      sql += ' AND u.classId = ?';
+      params.push(opts.classId);
+    }
+    if (opts.yearLevel) {
+      sql += ' AND u.yearLevel = ?';
+      params.push(opts.yearLevel);
+    }
+    if (opts.activeOnly) {
+      sql += ' AND (u.isActive = 1 OR u.isActive IS NULL)';
+    }
+    return db.prepare(sql).get(...params).total;
   },
 
   update: (id, fields) => {

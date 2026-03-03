@@ -6,7 +6,10 @@ const Class = {
   },
 
   findAll: () => {
-    return db.prepare('SELECT * FROM classes').all();
+    return db.prepare(`
+      SELECT c.*, (SELECT COUNT(*) FROM users u WHERE u.classId = c.id AND u.role = 'student') as studentCount
+      FROM classes c
+    `).all();
   },
 
   findByTeacherId: (teacherId) => {

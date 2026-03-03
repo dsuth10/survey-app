@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const Class = require('../models/class');
+const Activity = require('../models/activity');
 const { isAuthenticated, isAdmin } = require('./auth');
 
 router.use(isAuthenticated);
@@ -38,6 +39,7 @@ router.post('/classes', (req, res) => {
       return res.status(409).json({ error: 'A class with that name already exists' });
     }
     const id = Class.create(String(name).trim(), tid);
+    Activity.log(req.session.userId, 'class_created', 'class', id, { name });
     res.status(201).json(Class.findById(id));
   } catch (err) {
     console.error('Admin create class:', err);
@@ -115,22 +117,37 @@ router.put('/classes/:id/students', (req, res) => {
   }
 });
 
-// List users with optional filters
+// List users with optional filters and pagination
 router.get('/users', (req, res) => {
   try {
-    const { role, classId, yearLevel, activeOnly } = req.query;
+    const { role, classId, yearLevel, activeOnly, page = 1, limit = 50 } = req.query;
     const opts = {};
     if (role) opts.role = role;
     if (classId !== undefined && classId !== '') opts.classId = classId ? parseInt(classId, 10) : null;
     if (yearLevel) opts.yearLevel = yearLevel;
     if (activeOnly === 'true') opts.activeOnly = true;
+
+    const p = parseInt(page, 10) || 1;
+    const l = parseInt(limit, 10) || 50;
+    opts.limit = l;
+    opts.offset = (p - 1) * l;
+
     const users = User.getAll(opts);
+    const total = User.countAll(opts);
+
     // Don't send password hashes to client
     const safe = users.map((u) => {
       const { password, ...rest } = u;
       return rest;
     });
-    res.json(safe);
+
+    res.json({
+      users: safe,
+      total,
+      page: p,
+      limit: l,
+      totalPages: Math.ceil(total / l)
+    });
   } catch (err) {
     console.error('Admin list users:', err);
     res.status(500).json({ error: 'Failed to list users' });
@@ -174,6 +191,7 @@ router.post('/users', async (req, res) => {
       yearLevel: yearLevel || null,
       isActive: isActive !== false
     });
+    Activity.log(req.session.userId, 'user_created', 'user', id, { username, role });
     const user = User.findById(id);
     const { password: _p, ...safe } = user;
     res.status(201).json(safe);
@@ -291,6 +309,18 @@ router.post('/users/import', async (req, res) => {
   } catch (err) {
     console.error('Admin import users:', err);
     res.status(500).json({ error: 'Failed to import users' });
+  }
+});
+
+// Get recent activities
+router.get('/activities', (req, res) => {
+  try {
+    const { limit = 10, offset = 0 } = req.query;
+    const activities = Activity.getRecent(parseInt(limit, 10), parseInt(offset, 10));
+    res.json(activities);
+  } catch (err) {
+    console.error('Admin list activities:', err);
+    res.status(500).json({ error: 'Failed to list activities' });
   }
 });
 

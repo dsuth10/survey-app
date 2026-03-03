@@ -7,6 +7,7 @@ const { Response, SurveyAnswer } = require('../models/response');
 const { Question, Survey } = require('../models/survey');
 const User = require('../models/user');
 const Class = require('../models/class');
+const Activity = require('../models/activity');
 const { isAuthenticated } = require('./auth');
 
 router.get('/assignable-students', isAuthenticated, (req, res) => {
@@ -195,6 +196,7 @@ router.post('/', isAuthenticated, async (req, res) => {
     };
 
     const surveyId = await createSurvey(user, req.body);
+    Activity.log(req.session.userId, 'survey_published', 'survey', surveyId, { title: req.body.title });
     res.status(201).json({ id: surveyId, message: 'Survey created successfully' });
   } catch (error) {
     console.error('Survey creation error:', error.message);

@@ -105,12 +105,27 @@ function initDb() {
     CREATE INDEX IF NOT EXISTS idx_survey_answers_questionId ON survey_answers(questionId);
     CREATE INDEX IF NOT EXISTS idx_survey_targets_surveyId ON survey_targets(surveyId);
     CREATE INDEX IF NOT EXISTS idx_survey_targets_userId ON survey_targets(userId);
+
+    CREATE TABLE IF NOT EXISTS activities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER,
+      action TEXT NOT NULL,
+      targetType TEXT,
+      targetId INTEGER,
+      details TEXT,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_activities_userId ON activities(userId);
+    CREATE INDEX IF NOT EXISTS idx_activities_timestamp ON activities(timestamp);
   `);
 
   const surveyTableInfo = db.prepare('PRAGMA table_info(surveys)').all();
   const surveyColumns = surveyTableInfo.map((c) => c.name);
   if (!surveyColumns.includes('sharedWithIndividuals')) {
-    db.exec('ALTER TABLE surveys ADD COLUMN sharedWithIndividuals BOOLEAN DEFAULT 0');
+    db.exec(
+      'ALTER TABLE surveys ADD COLUMN sharedWithIndividuals BOOLEAN DEFAULT 0'
+    );
   }
   if (!surveyColumns.includes('opensAt')) {
     db.exec('ALTER TABLE surveys ADD COLUMN opensAt DATETIME');
@@ -133,8 +148,16 @@ function initDb() {
   }
 
   // Migration: if users table was created with old role CHECK (no 'admin'), recreate it
-  const usersTableDef = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get();
-  if (usersTableDef && usersTableDef.sql && !usersTableDef.sql.includes("'admin'")) {
+  const usersTableDef = db
+    .prepare(
+      "SELECT sql FROM sqlite_master WHERE type='table' AND name='users'"
+    )
+    .get();
+  if (
+    usersTableDef &&
+    usersTableDef.sql &&
+    !usersTableDef.sql.includes("'admin'")
+  ) {
     db.exec('PRAGMA foreign_keys = OFF');
     db.exec('DROP TABLE users');
     db.exec(`

@@ -41,6 +41,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     req.session.role = user.role;
     req.session.displayName = user.displayName;
     req.session.classId = user.classId;
+    req.session.yearLevel = user.yearLevel;
 
     req.session.save((err) => {
       if (err) {
@@ -54,7 +55,8 @@ router.post('/login', loginLimiter, async (req, res) => {
           username: user.username,
           role: user.role,
           displayName: user.displayName,
-          classId: user.classId
+          classId: user.classId,
+          yearLevel: user.yearLevel
         }
       });
     });
@@ -81,7 +83,8 @@ router.get('/me', (req, res) => {
       username: req.session.username,
       role: req.session.role,
       displayName: req.session.displayName,
-      classId: req.session.classId
+      classId: req.session.classId,
+      yearLevel: req.session.yearLevel
     });
   } else {
     res.status(401).json({ error: 'Not authenticated' });
