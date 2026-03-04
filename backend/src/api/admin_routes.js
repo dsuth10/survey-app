@@ -254,7 +254,7 @@ router.delete('/users/:id', (req, res) => {
 });
 
 // Bulk import users: body = { users: [ { username, displayName, role, class, yearLevel, password }, ... ] }
-// "class" can be class name; we resolve to classId. If not found, leave classId null or skip (configurable).
+// "class" can be class name; auto-creates the class if it doesn't exist yet (no teacher assigned).
 router.post('/users/import', async (req, res) => {
   try {
     const { users: rows } = req.body;
@@ -262,7 +262,7 @@ router.post('/users/import', async (req, res) => {
       return res.status(400).json({ error: 'Body must contain an array "users" with at least one row' });
     }
     const classesByName = new Map(Class.findAll().map((c) => [c.name, c.id]));
-    const results = { created: 0, errors: [] };
+    const results = { created: 0, classesCreated: [], errors: [] };
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const username = row.username?.trim();
@@ -283,7 +283,17 @@ router.post('/users/import', async (req, res) => {
       let classId = null;
       if (row.class != null && String(row.class).trim() !== '') {
         const name = String(row.class).trim();
-        classId = classesByName.get(name) || null;
+        if (classesByName.has(name)) {
+          // Existing class — reuse its ID
+          classId = classesByName.get(name);
+        } else {
+          // Class doesn't exist — create it on the fly (no teacher yet)
+          const newId = Class.create(name, null);
+          classesByName.set(name, newId);
+          classId = newId;
+          results.classesCreated.push(name);
+          Activity.log(req.session.userId, 'class_created', 'class', newId, { name, source: 'csv_import' });
+        }
       }
       try {
         const hashed = await bcrypt.hash(password, 10);
@@ -301,9 +311,13 @@ router.post('/users/import', async (req, res) => {
         results.errors.push({ row: i + 1, username, message: err.message || 'Create failed' });
       }
     }
+    const classMsg = results.classesCreated.length > 0
+      ? ` Auto-created ${results.classesCreated.length} class(es): ${results.classesCreated.join(', ')}.`
+      : '';
     res.status(200).json({
-      message: `Imported ${results.created} user(s)`,
+      message: `Imported ${results.created} user(s).${classMsg}`,
       created: results.created,
+      classesCreated: results.classesCreated,
       errors: results.errors
     });
   } catch (err) {

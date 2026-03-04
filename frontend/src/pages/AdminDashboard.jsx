@@ -382,7 +382,7 @@ export default function AdminDashboard() {
         const response = await axios.post("/api/admin/users/import", { users: usersToImport });
         setImportResult(response.data);
         if (response.data.created > 0) {
-          await fetchUsers();
+          await Promise.all([fetchUsers(), fetchClasses()]);
         }
         importModal.onClose();
         setImportFile(null);
