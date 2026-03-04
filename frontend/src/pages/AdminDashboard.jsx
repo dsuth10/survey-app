@@ -84,6 +84,7 @@ export default function AdminDashboard() {
   const [section, setSection] = useState("users");
   const [users, setUsers] = useState([]);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [allTeachers, setAllTeachers] = useState([]);
   const [classes, setClasses] = useState([]);
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,8 +119,10 @@ export default function AdminDashboard() {
   const [classStudentIds, setClassStudentIds] = useState([]);
   const [savingClass, setSavingClass] = useState(false);
 
-  const teachers = users.filter((u) => u.role === "teacher");
+  // Derived from paginated user list (current page only)
   const students = users.filter((u) => u.role === "student");
+  // teachers comes from a dedicated fetch so it's always complete regardless of pagination
+  const teachers = allTeachers;
 
   const fetchUsers = async () => {
     try {
@@ -147,6 +150,17 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchTeachers = async () => {
+    try {
+      const res = await axios.get("/api/admin/users?role=teacher&limit=500");
+      const data = res.data;
+      const list = Array.isArray(data) ? data : (Array.isArray(data.users) ? data.users : []);
+      setAllTeachers(list);
+    } catch (_) {
+      setAllTeachers([]);
+    }
+  };
+
   const fetchSurveys = async () => {
     try {
       const res = await axios.get("/api/surveys");
@@ -159,7 +173,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await Promise.all([fetchUsers(), fetchClasses(), fetchSurveys()]);
+      await Promise.all([fetchUsers(), fetchClasses(), fetchSurveys(), fetchTeachers()]);
       setLoading(false);
     };
     load();
@@ -382,7 +396,7 @@ export default function AdminDashboard() {
         const response = await axios.post("/api/admin/users/import", { users: usersToImport });
         setImportResult(response.data);
         if (response.data.created > 0) {
-          await Promise.all([fetchUsers(), fetchClasses()]);
+          await Promise.all([fetchUsers(), fetchClasses(), fetchTeachers()]);
         }
         importModal.onClose();
         setImportFile(null);
@@ -992,21 +1006,51 @@ export default function AdminDashboard() {
       </Modal>
 
       {/* Edit Class Modal */}
-      <Modal isOpen={editClassModal.isOpen} onOpenChange={editClassModal.onOpenChange} scrollBehavior="inside">
-        <ModalContent classNames={{ base: 'max-h-[90vh]' }}>
-          <ModalHeader>Edit class</ModalHeader>
-          <ModalBody classNames={{ base: 'flex flex-col gap-4 overflow-visible' }}>
-            <Input label="Class name" value={classForm.name} onValueChange={(v) => setClassForm((p) => ({ ...p, name: v }))} isRequired />
-            <Select label="Teacher" selectedKeys={[String(classForm.teacherId)]} onSelectionChange={(keys) => setClassForm((p) => ({ ...p, teacherId: Array.from(keys)[0] ?? "none" }))}>
-              <SelectItem key="none">None</SelectItem>
-              {teachers.map((t) => (
-                <SelectItem key={String(t.id)}>{t.displayName || t.username}</SelectItem>
-              ))}
-            </Select>
+      <Modal isOpen={editClassModal.isOpen} onOpenChange={editClassModal.onOpenChange} placement="center" size="md">
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            <span>Edit Class</span>
+            <span className="text-sm font-normal text-slate-500">Update the class name or assign a teacher</span>
+          </ModalHeader>
+          <ModalBody className="gap-4 pb-2">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Class name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={classForm.name}
+                onChange={(e) => setClassForm((p) => ({ ...p, name: e.target.value }))}
+                required
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Assigned teacher
+              </label>
+              <select
+                value={classForm.teacherId === "none" || classForm.teacherId == null ? "" : String(classForm.teacherId)}
+                onChange={(e) => setClassForm((p) => ({ ...p, teacherId: e.target.value === "" ? "none" : e.target.value }))}
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">— No teacher assigned —</option>
+                {teachers.map((t) => (
+                  <option key={t.id} value={String(t.id)}>
+                    {t.displayName || t.username}
+                  </option>
+                ))}
+              </select>
+              {teachers.length === 0 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5">
+                  ⚠ No teachers found. Import or add teacher accounts first.
+                </p>
+              )}
+            </div>
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={editClassModal.onClose}>Cancel</Button>
-            <Button color="primary" onPress={handleUpdateClass} isLoading={savingClass}>Save</Button>
+            <Button color="primary" onPress={handleUpdateClass} isLoading={savingClass}>Save changes</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
