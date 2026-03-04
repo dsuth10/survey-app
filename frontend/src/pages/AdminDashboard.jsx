@@ -83,6 +83,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [section, setSection] = useState("users");
   const [users, setUsers] = useState([]);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [classes, setClasses] = useState([]);
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -123,7 +124,15 @@ export default function AdminDashboard() {
   const fetchUsers = async () => {
     try {
       const res = await axios.get("/api/admin/users");
-      setUsers(res.data);
+      // Backend returns { users, total, page, limit } for paginated responses
+      const data = res.data;
+      if (Array.isArray(data)) {
+        setUsers(data);
+        setTotalUsers(data.length);
+      } else {
+        setUsers(Array.isArray(data.users) ? data.users : []);
+        setTotalUsers(data.total ?? 0);
+      }
     } catch (err) {
       setMessage({ type: "error", text: "Failed to load users" });
     }
@@ -515,7 +524,7 @@ export default function AdminDashboard() {
                 </span>
               </div>
               <p className="text-slate-500 text-sm font-medium">Total Users</p>
-              <p className="text-3xl font-bold mt-1">{loading ? "—" : users.length}</p>
+              <p className="text-3xl font-bold mt-1">{loading ? "—" : totalUsers}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
               <div className="flex justify-between items-start mb-4">
@@ -895,14 +904,54 @@ export default function AdminDashboard() {
       </Modal>
 
       {/* Import CSV Modal */}
-      <Modal isOpen={importModal.isOpen} onOpenChange={importModal.onOpenChange}>
+      <Modal isOpen={importModal.isOpen} onOpenChange={importModal.onOpenChange} size="lg">
         <ModalContent>
           <ModalHeader>Import users from CSV</ModalHeader>
           <ModalBody>
-            <p className="text-sm text-default-500 mb-2">CSV columns: username, displayName, role, class, yearLevel, password</p>
-            <input type="file" accept=".csv" onChange={(e) => setImportFile(e.target.files?.[0] ?? null)} className="block w-full text-sm" />
+            <div className="rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Required CSV columns</p>
+                <a
+                  href="/example-users.csv"
+                  download="example-users.csv"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                >
+                  <span className="material-symbols-outlined text-[16px]">download</span>
+                  Download example CSV
+                </a>
+              </div>
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 dark:bg-slate-700">
+                    <th className="text-left px-3 py-1.5 font-semibold text-slate-600 dark:text-slate-300 rounded-tl">Column</th>
+                    <th className="text-left px-3 py-1.5 font-semibold text-slate-600 dark:text-slate-300">Required?</th>
+                    <th className="text-left px-3 py-1.5 font-semibold text-slate-600 dark:text-slate-300 rounded-tr">Notes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {[
+                    ["username", "✅ Yes", "Unique login name"],
+                    ["password", "✅ Yes", "Initial password"],
+                    ["role", "✅ Yes", "student, teacher, or admin"],
+                    ["displayName", "No", "Full name for display"],
+                    ["class", "No", "Must match an existing class name (e.g. 7A)"],
+                    ["yearLevel", "No", 'Year group (e.g. "7")'],
+                  ].map(([col, req, note]) => (
+                    <tr key={col} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <td className="px-3 py-1.5 font-mono font-bold text-slate-800 dark:text-slate-200">{col}</td>
+                      <td className="px-3 py-1.5 text-slate-600 dark:text-slate-400">{req}</td>
+                      <td className="px-3 py-1.5 text-slate-500 dark:text-slate-400">{note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Select your CSV file</label>
+              <input type="file" accept=".csv" onChange={(e) => setImportFile(e.target.files?.[0] ?? null)} className="block w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90 cursor-pointer" />
+            </div>
             {importResult && (
-              <div className="mt-4 p-3 rounded-lg bg-default-100">
+              <div className="mt-2 p-3 rounded-lg bg-default-100">
                 <p className="font-medium">Created: {importResult.created}</p>
                 {importResult.errors?.length > 0 && (
                   <ul className="list-disc list-inside mt-2 text-sm text-danger-600">
