@@ -13,6 +13,14 @@ const Class = {
     return db.prepare('SELECT * FROM classes WHERE teacherId = ?').all(teacherId);
   },
 
+  findByTeacherIdWithCounts: (teacherId) => {
+    return db.prepare(`
+      SELECT c.*, (SELECT COUNT(*) FROM users u WHERE u.classId = c.id AND u.role = 'student') as studentCount
+      FROM classes c
+      WHERE c.teacherId = ?
+    `).all(teacherId);
+  },
+
   create: (name, teacherId) => {
     const info = db.prepare(`
       INSERT INTO classes (name, teacherId)

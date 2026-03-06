@@ -46,7 +46,7 @@ export default function BrowseSurveys() {
 
       {loading ? (
         <div className="grid gap-4">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map(_ => (
             <Card key={i} className="w-full h-[150px] p-4">
               <Skeleton className="rounded-lg">
                 <div className="h-24 rounded-lg bg-default-300"></div>
@@ -61,8 +61,8 @@ export default function BrowseSurveys() {
       ) : (
         <div className="grid gap-6">
           {surveys.map(survey => (
-            <Card 
-              key={survey.id} 
+            <Card
+              key={survey.id}
               isBlurred
               className={`border-none bg-background/60 dark:bg-default-100/50 shadow-sm hover:shadow-md transition-shadow ${survey.hasResponded ? 'opacity-70' : ''}`}
             >
@@ -84,7 +84,7 @@ export default function BrowseSurveys() {
                   </div>
                   <div className="flex flex-col gap-2">
                     {!survey.hasResponded ? (
-                      <Button 
+                      <Button
                         color="primary"
                         variant="shadow"
                         onPress={() => navigate(`/take-survey/${survey.id}`)}
@@ -93,7 +93,7 @@ export default function BrowseSurveys() {
                       </Button>
                     ) : (
                       <>
-                        <Button 
+                        <Button
                           color="default"
                           variant="flat"
                           size="sm"
@@ -101,7 +101,7 @@ export default function BrowseSurveys() {
                         >
                           View my response
                         </Button>
-                        <Button 
+                        <Button
                           color="default"
                           variant="flat"
                           size="sm"
@@ -130,15 +130,15 @@ export default function BrowseSurveys() {
                   <div key={a.questionId} className="p-2 rounded bg-default-100">
                     <p className="font-medium text-sm">{a.questionText}</p>
                     <p className="text-default-600">
-                  {(() => {
-                    try {
-                      if (typeof a.selectedOption === 'string' && a.selectedOption.startsWith('[')) {
-                        return JSON.parse(a.selectedOption).join(' → ');
-                      }
-                    } catch (_) {}
-                    return a.selectedOption;
-                  })()}
-                </p>
+                      {(() => {
+                        try {
+                          if (typeof a.selectedOption === 'string' && a.selectedOption.startsWith('[')) {
+                            return JSON.parse(a.selectedOption).join(' → ');
+                          }
+                        } catch (_) { /* ignore parse error */ }
+                        return a.selectedOption;
+                      })()}
+                    </p>
                   </div>
                 ))}
               </div>

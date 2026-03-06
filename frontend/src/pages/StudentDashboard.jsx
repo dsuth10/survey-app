@@ -28,6 +28,11 @@ export default function StudentDashboard() {
   const completedSurveys = surveys.filter((s) => s.hasResponded);
   const myCreatedSurveys = surveys.filter((s) => s.creatorId === user?.id);
   const pendingSurveys = surveys.filter((s) => !s.hasResponded && !s.closedAt && s.creatorId !== user?.id);
+  const totalRelevantSurveys = surveys.filter(s => s.creatorId !== user?.id).length;
+  const responseRate = totalRelevantSurveys > 0
+    ? Math.round((completedSurveys.length / totalRelevantSurveys) * 100)
+    : 0;
+
   const displayName = user?.displayName || user?.username || "Student";
   const firstName = displayName.split(/\s+/)[0] || displayName;
 
@@ -108,7 +113,6 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-4">
             <button type="button" className="relative p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
               <span className="material-symbols-outlined">notifications</span>
-              <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900" />
             </button>
             <div className="h-8 w-px bg-slate-200 dark:border-slate-800 mx-2" />
             <div className="flex items-center gap-3 cursor-pointer group">
@@ -158,21 +162,17 @@ export default function StudentDashboard() {
               </div>
             </div>
             <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Points Earned</p>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Response Rate</p>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl font-bold">—</span>
-                <span className="material-symbols-outlined text-yellow-500 text-lg">monetization_on</span>
+                <span className="text-2xl font-bold">{loading ? "—" : `${responseRate}%`}</span>
+                <span className="text-xs font-medium text-slate-400">of assigned</span>
               </div>
             </div>
             <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Badges Won</p>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">My Surveys</p>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl font-bold">—</span>
-                <div className="flex -space-x-2 overflow-hidden ml-2">
-                  <div className="inline-block h-6 w-6 rounded-full bg-primary/20 border-2 border-white dark:border-slate-900 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-xs">workspace_premium</span>
-                  </div>
-                </div>
+                <span className="text-2xl font-bold">{loading ? "—" : myCreatedSurveys.length}</span>
+                <span className="material-symbols-outlined text-primary text-lg">edit_document</span>
               </div>
             </div>
           </section>

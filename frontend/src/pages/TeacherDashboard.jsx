@@ -8,7 +8,7 @@ export default function TeacherDashboard() {
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [surveys, setSurveys] = useState([]);
-  const [classStudentCounts, setClassStudentCounts] = useState({});
+  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
@@ -16,13 +16,15 @@ export default function TeacherDashboard() {
     const load = async () => {
       setLoading(true);
       try {
-        const [classesRes, surveysRes] = await Promise.all([
+        const [classesRes, surveysRes, statsRes] = await Promise.all([
           axios.get("/api/classes"),
           axios.get("/api/surveys"),
+          axios.get("/api/surveys/teacher-stats"),
         ]);
         setClasses(Array.isArray(classesRes.data) ? classesRes.data : []);
         const surveyList = Array.isArray(surveysRes.data) ? surveysRes.data : [];
         setSurveys(surveyList.filter((s) => s.creatorId === user?.id));
+        setRecentActivity(statsRes.data.recentActivity || []);
       } catch (err) {
         console.error("Failed to load teacher data", err);
       } finally {
@@ -34,7 +36,14 @@ export default function TeacherDashboard() {
 
   const mySurveys = surveys.filter((s) => s.creatorId === user?.id);
   const activeSurveys = mySurveys.filter((s) => !s.closedAt);
-  const totalStudents = classes.length ? 0 : 0; // Backend doesn't expose student count per class for teacher; could sum from another endpoint
+  const totalStudents = classes.reduce((sum, c) => sum + (c.studentCount || 0), 0);
+
+  const surveysWithCompletion = mySurveys.filter(s => s.completion?.total > 0);
+  const avgCompletionRate = surveysWithCompletion.length
+    ? Math.round(surveysWithCompletion.reduce((sum, s) =>
+      sum + (s.completion.responded / s.completion.total) * 100, 0
+    ) / surveysWithCompletion.length)
+    : null;
 
   const handleViewResults = (surveyId) => navigate(`/results/${surveyId}`);
   const handleCreateSurvey = () => navigate("/create");
@@ -66,7 +75,7 @@ export default function TeacherDashboard() {
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-2">Main Menu</div>
           <button
-            onClick={() => {}}
+            onClick={() => { }}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors bg-primary/10 text-primary"
           >
             <span className="material-symbols-outlined">dashboard</span>
@@ -131,7 +140,6 @@ export default function TeacherDashboard() {
           <div className="flex items-center gap-6">
             <button type="button" className="relative p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
               <span className="material-symbols-outlined">notifications</span>
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900" />
             </button>
             <div className="h-8 w-px bg-slate-200 dark:border-slate-800" />
             <div className="flex items-center gap-3">
@@ -193,7 +201,7 @@ export default function TeacherDashboard() {
                 <span className="text-xs font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">—</span>
               </div>
               <p className="text-slate-500 text-sm font-medium">Completion Rate</p>
-              <h3 className="text-2xl font-black mt-1">—</h3>
+              <h3 className="text-2xl font-black mt-1">{loading ? "—" : (avgCompletionRate != null ? `${avgCompletionRate}%` : "—")}</h3>
             </div>
             <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
               <div className="flex justify-between items-start mb-4">
@@ -202,8 +210,8 @@ export default function TeacherDashboard() {
                 </div>
                 <span className="text-xs font-bold text-rose-500 bg-rose-50 dark:bg-rose-900/30 px-2 py-0.5 rounded-full">—</span>
               </div>
-              <p className="text-slate-500 text-sm font-medium">Pending Reviews</p>
-              <h3 className="text-2xl font-black mt-1">—</h3>
+              <p className="text-slate-500 text-sm font-medium">Recent Submissions</p>
+              <h3 className="text-2xl font-black mt-1">{loading ? "—" : recentActivity.length}</h3>
             </div>
           </div>
 
@@ -227,11 +235,11 @@ export default function TeacherDashboard() {
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{c.name}</h4>
-                            <p className="text-xs text-slate-500 font-medium">—</p>
+                            <p className="text-xs text-slate-500 font-medium">Class ID: {c.id}</p>
                           </div>
                           <div className="bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded text-[10px] font-bold uppercase text-slate-400">Class</div>
                         </div>
-                        <p className="text-xs text-slate-500 font-medium mb-5">— Students enrolled</p>
+                        <p className="text-xs text-slate-500 font-medium mb-5">{c.studentCount || 0} students enrolled</p>
                         <div className="flex gap-2">
                           <button type="button" onClick={handleManageClass} className="flex-1 text-[11px] font-bold py-2 bg-primary/5 text-primary rounded-lg hover:bg-primary/10 transition-colors">
                             Manage Roster
@@ -329,14 +337,29 @@ export default function TeacherDashboard() {
                 </div>
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
                   <div className="space-y-6">
-                    <div className="flex gap-4 relative">
-                      <div className="h-8 w-8 rounded-full bg-blue-50 dark:bg-blue-900/30 text-primary flex shrink-0 items-center justify-center relative z-10">
-                        <span className="material-symbols-outlined text-sm">task_alt</span>
+                    {recentActivity.length > 0 ? (
+                      recentActivity.map((act, i) => (
+                        <div key={i} className="flex gap-4 relative">
+                          <div className="h-8 w-8 rounded-full bg-blue-50 dark:bg-blue-900/30 text-primary flex shrink-0 items-center justify-center relative z-10">
+                            <span className="material-symbols-outlined text-sm">task_alt</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{act.studentName}</p>
+                            <p className="text-[10px] text-slate-500 truncate">responded to {act.surveyTitle}</p>
+                            <p className="text-[9px] text-slate-400 mt-1">{new Date(act.submittedAt).toLocaleString()}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex gap-4 relative">
+                        <div className="h-8 w-8 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-400 flex shrink-0 items-center justify-center relative z-10">
+                          <span className="material-symbols-outlined text-sm">history</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-slate-500 leading-relaxed">No recent survey submissions.</p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-xs text-slate-500 leading-relaxed">Recent survey submissions will appear here.</p>
-                      </div>
-                    </div>
+                    )}
                   </div>
                   <button type="button" className="w-full mt-8 py-2 text-xs font-bold text-slate-500 hover:text-primary transition-colors border-t border-slate-100 dark:border-slate-800 pt-4">
                     View All Activity History

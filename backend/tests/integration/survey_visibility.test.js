@@ -30,11 +30,11 @@ describe('Survey Visibility Integration', () => {
     db.prepare('DELETE FROM distribution_permissions').run();
     db.prepare('DELETE FROM users').run();
     db.prepare('DELETE FROM classes').run();
-    
+
     // Create classes
     db.prepare("INSERT INTO classes (id, name) VALUES (1, '7A')").run();
     db.prepare("INSERT INTO classes (id, name) VALUES (2, '8B')").run();
-    
+
     // Create teacher (in Class 1, Year 7)
     db.prepare("INSERT INTO users (id, username, password, role, classId, yearLevel) VALUES (1, 't1', 'h', 'teacher', 1, '7')").run();
     // Create student A in Class 1, Year 7
@@ -69,7 +69,7 @@ describe('Survey Visibility Integration', () => {
   test('Student B should see Year 8, School, and their private survey', async () => {
     currentUser = { id: 3, role: 'student', classId: 2, yearLevel: '8' };
     const res = await request(app).get('/api/surveys');
-    expect(ids = res.body.map(s => s.id));
+    const ids = res.body.map(s => s.id);
     expect(ids).toContain(2); // Year 8
     expect(ids).toContain(3); // School
     expect(ids).toContain(4); // Own private

@@ -29,6 +29,30 @@ router.get('/assignable-students', isAuthenticated, (req, res) => {
   }
 });
 
+router.get('/teacher-stats', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    if (req.session.role !== 'teacher' && req.session.role !== 'admin') {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const db = require('../db/connection');
+    const recentActivity = db.prepare(`
+      SELECT r.submittedAt, s.title as surveyTitle, u.displayName as studentName
+      FROM responses r
+      JOIN surveys s ON r.surveyId = s.id
+      JOIN users u ON r.userId = u.id
+      WHERE s.creatorId = ?
+      ORDER BY r.submittedAt DESC
+      LIMIT 10
+    `).all(userId);
+
+    res.json({ recentActivity });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/:id/results', isAuthenticated, async (req, res) => {
   try {
     const surveyId = req.params.id;

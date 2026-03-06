@@ -18,7 +18,7 @@ export default function TakeSurvey() {
 
   useEffect(() => {
     fetchSurvey();
-  }, [id]);
+  }, [id, fetchSurvey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchSurvey = async () => {
     try {
@@ -40,7 +40,7 @@ export default function TakeSurvey() {
 
   const handleSubmit = async () => {
     setError('');
-    
+
     // Check if all required questions are answered
     const unanswered = survey.questions.filter(q => q.isRequired && !answers[q.id]);
     if (unanswered.length > 0) {
@@ -103,7 +103,7 @@ export default function TakeSurvey() {
                 );
               }
               return (
-                <RadioQuestion 
+                <RadioQuestion
                   key={q.id}
                   question={q}
                   index={index}
@@ -112,8 +112,8 @@ export default function TakeSurvey() {
                 />
               );
             })}
-            
-            <SurveyActions 
+
+            <SurveyActions
               onSubmit={handleSubmit}
               onCancel={() => navigate('/browse')}
               isSubmitting={submitting}
