@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const Class = require('../models/class');
+const Activity = require('../models/activity');
 const { isAuthenticated, isAdmin } = require('./auth');
 
 router.use(isAuthenticated);
@@ -38,6 +39,7 @@ router.post('/classes', (req, res) => {
       return res.status(409).json({ error: 'A class with that name already exists' });
     }
     const id = Class.create(String(name).trim(), tid);
+    Activity.log(req.session.userId, 'class_created', 'class', id, { name });
     res.status(201).json(Class.findById(id));
   } catch (err) {
     console.error('Admin create class:', err);
@@ -115,22 +117,37 @@ router.put('/classes/:id/students', (req, res) => {
   }
 });
 
-// List users with optional filters
+// List users with optional filters and pagination
 router.get('/users', (req, res) => {
   try {
-    const { role, classId, yearLevel, activeOnly } = req.query;
+    const { role, classId, yearLevel, activeOnly, page = 1, limit = 50 } = req.query;
     const opts = {};
     if (role) opts.role = role;
     if (classId !== undefined && classId !== '') opts.classId = classId ? parseInt(classId, 10) : null;
     if (yearLevel) opts.yearLevel = yearLevel;
     if (activeOnly === 'true') opts.activeOnly = true;
+
+    const p = parseInt(page, 10) || 1;
+    const l = parseInt(limit, 10) || 50;
+    opts.limit = l;
+    opts.offset = (p - 1) * l;
+
     const users = User.getAll(opts);
+    const total = User.countAll(opts);
+
     // Don't send password hashes to client
     const safe = users.map((u) => {
       const { password, ...rest } = u;
       return rest;
     });
-    res.json(safe);
+
+    res.json({
+      users: safe,
+      total,
+      page: p,
+      limit: l,
+      totalPages: Math.ceil(total / l)
+    });
   } catch (err) {
     console.error('Admin list users:', err);
     res.status(500).json({ error: 'Failed to list users' });
@@ -174,6 +191,7 @@ router.post('/users', async (req, res) => {
       yearLevel: yearLevel || null,
       isActive: isActive !== false
     });
+    Activity.log(req.session.userId, 'user_created', 'user', id, { username, role });
     const user = User.findById(id);
     const { password: _p, ...safe } = user;
     res.status(201).json(safe);
@@ -236,7 +254,7 @@ router.delete('/users/:id', (req, res) => {
 });
 
 // Bulk import users: body = { users: [ { username, displayName, role, class, yearLevel, password }, ... ] }
-// "class" can be class name; we resolve to classId. If not found, leave classId null or skip (configurable).
+// "class" can be class name; auto-creates the class if it doesn't exist yet (no teacher assigned).
 router.post('/users/import', async (req, res) => {
   try {
     const { users: rows } = req.body;
@@ -244,7 +262,7 @@ router.post('/users/import', async (req, res) => {
       return res.status(400).json({ error: 'Body must contain an array "users" with at least one row' });
     }
     const classesByName = new Map(Class.findAll().map((c) => [c.name, c.id]));
-    const results = { created: 0, errors: [] };
+    const results = { created: 0, classesCreated: [], errors: [] };
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const username = row.username?.trim();
@@ -265,7 +283,17 @@ router.post('/users/import', async (req, res) => {
       let classId = null;
       if (row.class != null && String(row.class).trim() !== '') {
         const name = String(row.class).trim();
-        classId = classesByName.get(name) || null;
+        if (classesByName.has(name)) {
+          // Existing class — reuse its ID
+          classId = classesByName.get(name);
+        } else {
+          // Class doesn't exist — create it on the fly (no teacher yet)
+          const newId = Class.create(name, null);
+          classesByName.set(name, newId);
+          classId = newId;
+          results.classesCreated.push(name);
+          Activity.log(req.session.userId, 'class_created', 'class', newId, { name, source: 'csv_import' });
+        }
       }
       try {
         const hashed = await bcrypt.hash(password, 10);
@@ -283,14 +311,30 @@ router.post('/users/import', async (req, res) => {
         results.errors.push({ row: i + 1, username, message: err.message || 'Create failed' });
       }
     }
+    const classMsg = results.classesCreated.length > 0
+      ? ` Auto-created ${results.classesCreated.length} class(es): ${results.classesCreated.join(', ')}.`
+      : '';
     res.status(200).json({
-      message: `Imported ${results.created} user(s)`,
+      message: `Imported ${results.created} user(s).${classMsg}`,
       created: results.created,
+      classesCreated: results.classesCreated,
       errors: results.errors
     });
   } catch (err) {
     console.error('Admin import users:', err);
     res.status(500).json({ error: 'Failed to import users' });
+  }
+});
+
+// Get recent activities
+router.get('/activities', (req, res) => {
+  try {
+    const { limit = 10, offset = 0 } = req.query;
+    const activities = Activity.getRecent(parseInt(limit, 10), parseInt(offset, 10));
+    res.json(activities);
+  } catch (err) {
+    console.error('Admin list activities:', err);
+    res.status(500).json({ error: 'Failed to list activities' });
   }
 });
 

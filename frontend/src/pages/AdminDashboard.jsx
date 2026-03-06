@@ -83,6 +83,8 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [section, setSection] = useState("users");
   const [users, setUsers] = useState([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [allTeachers, setAllTeachers] = useState([]);
   const [classes, setClasses] = useState([]);
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -117,13 +119,23 @@ export default function AdminDashboard() {
   const [classStudentIds, setClassStudentIds] = useState([]);
   const [savingClass, setSavingClass] = useState(false);
 
-  const teachers = users.filter((u) => u.role === "teacher");
+  // Derived from paginated user list (current page only)
   const students = users.filter((u) => u.role === "student");
+  // teachers comes from a dedicated fetch so it's always complete regardless of pagination
+  const teachers = allTeachers;
 
   const fetchUsers = async () => {
     try {
       const res = await axios.get("/api/admin/users");
-      setUsers(res.data);
+      // Backend returns { users, total, page, limit } for paginated responses
+      const data = res.data;
+      if (Array.isArray(data)) {
+        setUsers(data);
+        setTotalUsers(data.length);
+      } else {
+        setUsers(Array.isArray(data.users) ? data.users : []);
+        setTotalUsers(data.total ?? 0);
+      }
     } catch (err) {
       setMessage({ type: "error", text: "Failed to load users" });
     }
@@ -135,6 +147,17 @@ export default function AdminDashboard() {
       setClasses(res.data);
     } catch (err) {
       setMessage({ type: "error", text: "Failed to load classes" });
+    }
+  };
+
+  const fetchTeachers = async () => {
+    try {
+      const res = await axios.get("/api/admin/users?role=teacher&limit=500");
+      const data = res.data;
+      const list = Array.isArray(data) ? data : (Array.isArray(data.users) ? data.users : []);
+      setAllTeachers(list);
+    } catch (_) {
+      setAllTeachers([]);
     }
   };
 
@@ -150,7 +173,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await Promise.all([fetchUsers(), fetchClasses(), fetchSurveys()]);
+      await Promise.all([fetchUsers(), fetchClasses(), fetchSurveys(), fetchTeachers()]);
       setLoading(false);
     };
     load();
@@ -373,7 +396,7 @@ export default function AdminDashboard() {
         const response = await axios.post("/api/admin/users/import", { users: usersToImport });
         setImportResult(response.data);
         if (response.data.created > 0) {
-          await fetchUsers();
+          await Promise.all([fetchUsers(), fetchClasses(), fetchTeachers()]);
         }
         importModal.onClose();
         setImportFile(null);
@@ -515,7 +538,7 @@ export default function AdminDashboard() {
                 </span>
               </div>
               <p className="text-slate-500 text-sm font-medium">Total Users</p>
-              <p className="text-3xl font-bold mt-1">{loading ? "—" : users.length}</p>
+              <p className="text-3xl font-bold mt-1">{loading ? "—" : totalUsers}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
               <div className="flex justify-between items-start mb-4">
@@ -895,14 +918,54 @@ export default function AdminDashboard() {
       </Modal>
 
       {/* Import CSV Modal */}
-      <Modal isOpen={importModal.isOpen} onOpenChange={importModal.onOpenChange}>
+      <Modal isOpen={importModal.isOpen} onOpenChange={importModal.onOpenChange} size="lg">
         <ModalContent>
           <ModalHeader>Import users from CSV</ModalHeader>
           <ModalBody>
-            <p className="text-sm text-default-500 mb-2">CSV columns: username, displayName, role, class, yearLevel, password</p>
-            <input type="file" accept=".csv" onChange={(e) => setImportFile(e.target.files?.[0] ?? null)} className="block w-full text-sm" />
+            <div className="rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Required CSV columns</p>
+                <a
+                  href="/example-users.csv"
+                  download="example-users.csv"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                >
+                  <span className="material-symbols-outlined text-[16px]">download</span>
+                  Download example CSV
+                </a>
+              </div>
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 dark:bg-slate-700">
+                    <th className="text-left px-3 py-1.5 font-semibold text-slate-600 dark:text-slate-300 rounded-tl">Column</th>
+                    <th className="text-left px-3 py-1.5 font-semibold text-slate-600 dark:text-slate-300">Required?</th>
+                    <th className="text-left px-3 py-1.5 font-semibold text-slate-600 dark:text-slate-300 rounded-tr">Notes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {[
+                    ["username", "✅ Yes", "Unique login name"],
+                    ["password", "✅ Yes", "Initial password"],
+                    ["role", "✅ Yes", "student, teacher, or admin"],
+                    ["displayName", "No", "Full name for display"],
+                    ["class", "No", "Must match an existing class name (e.g. 7A)"],
+                    ["yearLevel", "No", 'Year group (e.g. "7")'],
+                  ].map(([col, req, note]) => (
+                    <tr key={col} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <td className="px-3 py-1.5 font-mono font-bold text-slate-800 dark:text-slate-200">{col}</td>
+                      <td className="px-3 py-1.5 text-slate-600 dark:text-slate-400">{req}</td>
+                      <td className="px-3 py-1.5 text-slate-500 dark:text-slate-400">{note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Select your CSV file</label>
+              <input type="file" accept=".csv" onChange={(e) => setImportFile(e.target.files?.[0] ?? null)} className="block w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90 cursor-pointer" />
+            </div>
             {importResult && (
-              <div className="mt-4 p-3 rounded-lg bg-default-100">
+              <div className="mt-2 p-3 rounded-lg bg-default-100">
                 <p className="font-medium">Created: {importResult.created}</p>
                 {importResult.errors?.length > 0 && (
                   <ul className="list-disc list-inside mt-2 text-sm text-danger-600">
@@ -943,21 +1006,51 @@ export default function AdminDashboard() {
       </Modal>
 
       {/* Edit Class Modal */}
-      <Modal isOpen={editClassModal.isOpen} onOpenChange={editClassModal.onOpenChange} scrollBehavior="inside">
-        <ModalContent classNames={{ base: 'max-h-[90vh]' }}>
-          <ModalHeader>Edit class</ModalHeader>
-          <ModalBody classNames={{ base: 'flex flex-col gap-4 overflow-visible' }}>
-            <Input label="Class name" value={classForm.name} onValueChange={(v) => setClassForm((p) => ({ ...p, name: v }))} isRequired />
-            <Select label="Teacher" selectedKeys={[String(classForm.teacherId)]} onSelectionChange={(keys) => setClassForm((p) => ({ ...p, teacherId: Array.from(keys)[0] ?? "none" }))}>
-              <SelectItem key="none">None</SelectItem>
-              {teachers.map((t) => (
-                <SelectItem key={String(t.id)}>{t.displayName || t.username}</SelectItem>
-              ))}
-            </Select>
+      <Modal isOpen={editClassModal.isOpen} onOpenChange={editClassModal.onOpenChange} placement="center" size="md">
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            <span>Edit Class</span>
+            <span className="text-sm font-normal text-slate-500">Update the class name or assign a teacher</span>
+          </ModalHeader>
+          <ModalBody className="gap-4 pb-2">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Class name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={classForm.name}
+                onChange={(e) => setClassForm((p) => ({ ...p, name: e.target.value }))}
+                required
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Assigned teacher
+              </label>
+              <select
+                value={classForm.teacherId === "none" || classForm.teacherId == null ? "" : String(classForm.teacherId)}
+                onChange={(e) => setClassForm((p) => ({ ...p, teacherId: e.target.value === "" ? "none" : e.target.value }))}
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">— No teacher assigned —</option>
+                {teachers.map((t) => (
+                  <option key={t.id} value={String(t.id)}>
+                    {t.displayName || t.username}
+                  </option>
+                ))}
+              </select>
+              {teachers.length === 0 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5">
+                  ⚠ No teachers found. Import or add teacher accounts first.
+                </p>
+              )}
+            </div>
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={editClassModal.onClose}>Cancel</Button>
-            <Button color="primary" onPress={handleUpdateClass} isLoading={savingClass}>Save</Button>
+            <Button color="primary" onPress={handleUpdateClass} isLoading={savingClass}>Save changes</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
