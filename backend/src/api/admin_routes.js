@@ -85,6 +85,9 @@ router.delete('/classes/:id', (req, res) => {
     res.json({ message: 'Class deleted' });
   } catch (err) {
     console.error('Admin delete class:', err);
+    if (String(err.message || '').includes('FOREIGN KEY constraint failed')) {
+      return res.status(409).json({ error: 'Class cannot be deleted until related records are updated or removed' });
+    }
     res.status(500).json({ error: 'Failed to delete class' });
   }
 });
@@ -109,6 +112,12 @@ router.put('/classes/:id/students', (req, res) => {
     if (!Class.findById(id)) return res.status(404).json({ error: 'Class not found' });
     const { userIds } = req.body;
     const ids = Array.isArray(userIds) ? userIds.map((u) => parseInt(u, 10)).filter((n) => !Number.isNaN(n)) : [];
+    if (ids.length > 0) {
+      const nonStudents = User.getAll({}).filter((u) => ids.includes(u.id) && u.role !== 'student');
+      if (nonStudents.length > 0) {
+        return res.status(400).json({ error: 'Only student users can be assigned to a class' });
+      }
+    }
     Class.setStudents(id, ids);
     res.json({ message: 'Students updated', students: Class.getStudents(id) });
   } catch (err) {
@@ -249,6 +258,9 @@ router.delete('/users/:id', (req, res) => {
     res.json({ message: 'User deleted' });
   } catch (err) {
     console.error('Admin delete user:', err);
+    if (String(err.message || '').includes('FOREIGN KEY constraint failed')) {
+      return res.status(409).json({ error: 'User cannot be deleted because related survey/response/activity records exist' });
+    }
     res.status(500).json({ error: 'Failed to delete user' });
   }
 });

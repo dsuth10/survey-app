@@ -32,7 +32,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await axios.post('/api/auth/logout');
+    try {
+      await axios.post('/api/auth/logout');
+    } catch (_) {
+      // Ensure local auth state is cleared even if logout request fails
+    }
     setUser(null);
   };
 

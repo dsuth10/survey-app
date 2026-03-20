@@ -25,9 +25,9 @@ export default function StudentDashboard() {
     if (user?.id) load();
   }, [user?.id]);
 
-  const completedSurveys = surveys.filter((s) => s.hasResponded);
+  const completedSurveys = surveys.filter((s) => s.hasResponded && s.creatorId !== user?.id);
   const myCreatedSurveys = surveys.filter((s) => s.creatorId === user?.id);
-  const pendingSurveys = surveys.filter((s) => !s.hasResponded && !s.closedAt && s.creatorId !== user?.id);
+  const pendingSurveys = surveys.filter((s) => !s.hasResponded && !s.closesAt && !s.closedAt && s.creatorId !== user?.id);
   const totalRelevantSurveys = surveys.filter(s => s.creatorId !== user?.id).length;
   const responseRate = totalRelevantSurveys > 0
     ? Math.round((completedSurveys.length / totalRelevantSurveys) * 100)

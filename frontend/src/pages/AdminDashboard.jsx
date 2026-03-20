@@ -83,6 +83,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [section, setSection] = useState("users");
   const [users, setUsers] = useState([]);
+  const [allStudents, setAllStudents] = useState([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [allTeachers, setAllTeachers] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -90,6 +91,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [page, setPage] = useState(1);
 
   const addUserModal = useDisclosure();
   const editUserModal = useDisclosure();
@@ -119,8 +121,8 @@ export default function AdminDashboard() {
   const [classStudentIds, setClassStudentIds] = useState([]);
   const [savingClass, setSavingClass] = useState(false);
 
-  // Derived from paginated user list (current page only)
-  const students = users.filter((u) => u.role === "student");
+  // Full student list for class-assignment modal
+  const students = allStudents;
   // teachers comes from a dedicated fetch so it's always complete regardless of pagination
   const teachers = allTeachers;
 
@@ -161,6 +163,17 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchStudents = async () => {
+    try {
+      const res = await axios.get("/api/admin/users?role=student&limit=5000");
+      const data = res.data;
+      const list = Array.isArray(data) ? data : (Array.isArray(data.users) ? data.users : []);
+      setAllStudents(list);
+    } catch (_) {
+      setAllStudents([]);
+    }
+  };
+
   const fetchSurveys = async () => {
     try {
       const res = await axios.get("/api/surveys");
@@ -173,7 +186,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await Promise.all([fetchUsers(), fetchClasses(), fetchSurveys(), fetchTeachers()]);
+      await Promise.all([fetchUsers(), fetchClasses(), fetchSurveys(), fetchTeachers(), fetchStudents()]);
       setLoading(false);
     };
     load();
@@ -187,7 +200,11 @@ export default function AdminDashboard() {
       )
     : users;
 
-  const pagination = { page: 1, perPage: 10 };
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const pagination = { page, perPage: 10 };
   const start = (pagination.page - 1) * pagination.perPage;
   const paginatedUsers = filteredUsers.slice(start, start + pagination.perPage);
 
@@ -231,7 +248,7 @@ export default function AdminDashboard() {
         classId: formUser.classId || null,
       });
       addUserModal.onClose();
-      await fetchUsers();
+      await Promise.all([fetchUsers(), fetchStudents()]);
       setMessage({ type: "success", text: "User created" });
     } catch (err) {
       setMessage({ type: "error", text: err.response?.data?.error || "Failed to create user" });
@@ -254,7 +271,7 @@ export default function AdminDashboard() {
       if (formUser.password) payload.password = formUser.password;
       await axios.put(`/api/admin/users/${editUserId}`, payload);
       editUserModal.onClose();
-      await fetchUsers();
+      await Promise.all([fetchUsers(), fetchStudents()]);
       setMessage({ type: "success", text: "User updated" });
     } catch (err) {
       setMessage({ type: "error", text: err.response?.data?.error || "Failed to update user" });
@@ -270,8 +287,8 @@ export default function AdminDashboard() {
   const handleDeactivate = async (u) => {
     if (!window.confirm(`Deactivate ${u.displayName || u.username}?`)) return;
     try {
-      await axios.put(`/api/admin/users/${u.id}`, { ...u, isActive: false });
-      await fetchUsers();
+      await axios.put(`/api/admin/users/${u.id}`, { isActive: false });
+      await Promise.all([fetchUsers(), fetchStudents()]);
       setMessage({ type: "success", text: "User deactivated" });
     } catch (err) {
       setMessage({ type: "error", text: err.response?.data?.error || "Failed to update" });
@@ -282,7 +299,7 @@ export default function AdminDashboard() {
     if (!window.confirm(`Delete user "${username}"? This cannot be undone.`)) return;
     try {
       await axios.delete(`/api/admin/users/${id}`);
-      await fetchUsers();
+      await Promise.all([fetchUsers(), fetchStudents()]);
       setMessage({ type: "success", text: "User deleted" });
     } catch (err) {
       setMessage({ type: "error", text: err.response?.data?.error || "Failed to delete user" });
@@ -396,9 +413,8 @@ export default function AdminDashboard() {
         const response = await axios.post("/api/admin/users/import", { users: usersToImport });
         setImportResult(response.data);
         if (response.data.created > 0) {
-          await Promise.all([fetchUsers(), fetchClasses(), fetchTeachers()]);
+          await Promise.all([fetchUsers(), fetchClasses(), fetchTeachers(), fetchStudents()]);
         }
-        importModal.onClose();
         setImportFile(null);
       } catch (err) {
         setImportResult({
@@ -657,10 +673,10 @@ export default function AdminDashboard() {
                       Showing {filteredUsers.length === 0 ? 0 : start + 1}-{Math.min(start + pagination.perPage, filteredUsers.length)} of {filteredUsers.length} users
                     </p>
                     <div className="flex gap-2">
-                      <button type="button" disabled={start === 0} className="p-1.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 disabled:opacity-50">
+                      <button type="button" onClick={() => setPage((prev) => Math.max(1, prev - 1))} disabled={start === 0} className="p-1.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 disabled:opacity-50">
                         <span className="material-symbols-outlined text-[18px]">chevron_left</span>
                       </button>
-                      <button type="button" disabled={start + pagination.perPage >= filteredUsers.length} className="p-1.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 disabled:opacity-50">
+                      <button type="button" onClick={() => setPage((prev) => prev + 1)} disabled={start + pagination.perPage >= filteredUsers.length} className="p-1.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 disabled:opacity-50">
                         <span className="material-symbols-outlined text-[18px]">chevron_right</span>
                       </button>
                     </div>

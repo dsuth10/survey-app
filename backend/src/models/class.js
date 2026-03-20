@@ -48,9 +48,13 @@ const Class = {
   },
 
   delete: (id) => {
-    db.prepare('UPDATE users SET classId = NULL WHERE classId = ?').run(id);
-    db.prepare('DELETE FROM distribution_permissions WHERE classId = ?').run(id);
-    return db.prepare('DELETE FROM classes WHERE id = ?').run(id);
+    const runDelete = db.transaction((classId) => {
+      db.prepare('UPDATE users SET classId = NULL WHERE classId = ?').run(classId);
+      db.prepare('UPDATE surveys SET targetClassId = NULL WHERE targetClassId = ?').run(classId);
+      db.prepare('DELETE FROM distribution_permissions WHERE classId = ?').run(classId);
+      return db.prepare('DELETE FROM classes WHERE id = ?').run(classId);
+    });
+    return runDelete(id);
   },
 
   getStudents: (classId) => {
@@ -58,13 +62,16 @@ const Class = {
   },
 
   setStudents: (classId, userIds) => {
-    db.prepare('UPDATE users SET classId = NULL WHERE classId = ?').run(classId);
-    if (userIds.length > 0) {
-      const stmt = db.prepare('UPDATE users SET classId = ? WHERE id = ?');
-      for (const uid of userIds) {
-        stmt.run(classId, uid);
+    const assignStudents = db.transaction((nextClassId, nextUserIds) => {
+      db.prepare('UPDATE users SET classId = NULL WHERE classId = ?').run(nextClassId);
+      if (nextUserIds.length > 0) {
+        const stmt = db.prepare('UPDATE users SET classId = ? WHERE id = ?');
+        for (const uid of nextUserIds) {
+          stmt.run(nextClassId, uid);
+        }
       }
-    }
+    });
+    assignStudents(classId, userIds);
   },
 
   getWithPermissions: (id) => {

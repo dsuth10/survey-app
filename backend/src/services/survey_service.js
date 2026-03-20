@@ -1,5 +1,6 @@
 const { Survey, Question, SurveyTarget } = require('../models/survey');
 const Class = require('../models/class');
+const db = require('../db/connection');
 
 const VALID_QUESTION_TYPES = ['multipleChoice', 'trueFalse', 'ranking', 'text'];
 
@@ -52,7 +53,7 @@ function validateDistribution(user, surveyData, permissions) {
 async function createSurvey(user, surveyData) {
   const { title, questions } = surveyData;
 
-  if (!title || !questions || questions.length === 0) {
+  if (!title || !String(title).trim() || !questions || questions.length === 0) {
     throw new Error('Survey must have a title and at least one question');
   }
 
@@ -73,7 +74,14 @@ async function createSurvey(user, surveyData) {
 
   const surveyId = Survey.create({
     creatorId: user.id,
-    ...surveyData,
+    title: String(surveyData.title).trim(),
+    description: surveyData.description || '',
+    isAnonymous: !!surveyData.isAnonymous,
+    sharedWithClass: !!surveyData.sharedWithClass,
+    sharedWithYearLevel: !!surveyData.sharedWithYearLevel,
+    sharedWithSchool: !!surveyData.sharedWithSchool,
+    opensAt: surveyData.opensAt || null,
+    closesAt: surveyData.closesAt || null,
     targetClassId: surveyData.targetClassId || null,
     sharedWithIndividuals
   });
@@ -86,8 +94,62 @@ async function createSurvey(user, surveyData) {
   return surveyId;
 }
 
+async function updateSurvey(user, surveyId, surveyData) {
+  const existing = Survey.findById(surveyId);
+  if (!existing) {
+    throw new Error('Survey not found');
+  }
+  if (existing.creatorId !== user.id && user.role !== 'teacher' && user.role !== 'admin') {
+    throw new Error('Not authorized to edit this survey');
+  }
+  const responseCount = db.prepare('SELECT COUNT(*) AS count FROM responses WHERE surveyId = ?').get(surveyId)?.count || 0;
+  if (responseCount > 0) {
+    const err = new Error('Cannot edit a survey after responses are submitted');
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const { title, questions } = surveyData;
+  if (!title || !String(title).trim() || !questions || questions.length === 0) {
+    throw new Error('Survey must have a title and at least one question');
+  }
+
+  questions.forEach((q, i) => validateQuestion(q, i));
+
+  if (user.role === 'student') {
+    const permissions = Class.getWithPermissions(user.classId);
+    validateDistribution(user, surveyData, permissions);
+    if (surveyData.sharedWithClass) {
+      surveyData.targetClassId = user.classId;
+    }
+  }
+
+  const targetUserIds = Array.isArray(surveyData.targetUserIds)
+    ? surveyData.targetUserIds.map((id) => parseInt(id, 10)).filter((n) => !Number.isNaN(n))
+    : [];
+  const sharedWithIndividuals = targetUserIds.length > 0;
+
+  Survey.update(surveyId, {
+    title: String(surveyData.title).trim(),
+    description: surveyData.description || '',
+    isAnonymous: !!surveyData.isAnonymous,
+    sharedWithClass: !!surveyData.sharedWithClass,
+    sharedWithYearLevel: !!surveyData.sharedWithYearLevel,
+    sharedWithSchool: !!surveyData.sharedWithSchool,
+    opensAt: surveyData.opensAt || null,
+    closesAt: surveyData.closesAt || null,
+    targetClassId: surveyData.targetClassId || null,
+    sharedWithIndividuals
+  });
+  Question.replaceAll(surveyId, questions);
+  SurveyTarget.replaceMany(surveyId, targetUserIds);
+
+  return surveyId;
+}
+
 module.exports = {
   createSurvey,
+  updateSurvey,
   validateDistribution,
   validateQuestion,
   VALID_QUESTION_TYPES

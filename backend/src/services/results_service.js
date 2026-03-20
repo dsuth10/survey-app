@@ -146,7 +146,10 @@ function getSurveyResults(surveyId) {
 }
 
 function escapeCsv(val) {
-  const s = String(val ?? '');
+  let s = String(val ?? '');
+  if (/^[=+\-@]/.test(s)) {
+    s = `'${s}`;
+  }
   if (s.includes(',') || s.includes('"') || s.includes('\n')) {
     return '"' + s.replace(/"/g, '""') + '"';
   }

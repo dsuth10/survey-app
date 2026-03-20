@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { createSurvey } = require('../services/survey_service');
+const { createSurvey, updateSurvey } = require('../services/survey_service');
 const { getVisibleSurveys } = require('../services/visibility_service');
 const { getSurveyResults, getSurveyResultsCsv, getSurveyCompletion, getMyResponse } = require('../services/results_service');
 const { Response, SurveyAnswer } = require('../models/response');
-const { Question, Survey } = require('../models/survey');
+const { Question, Survey, SurveyTarget } = require('../models/survey');
 const User = require('../models/user');
 const Class = require('../models/class');
 const Activity = require('../models/activity');
@@ -156,7 +156,8 @@ router.get('/:id', isAuthenticated, async (req, res) => {
     }
 
     const questions = Question.findBySurveyId(surveyId);
-    res.json({ survey, questions });
+    const targetUserIds = SurveyTarget.getBySurveyId(surveyId);
+    res.json({ survey: { ...survey, targetUserIds }, questions });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -201,8 +202,37 @@ router.post('/:id/responses', isAuthenticated, async (req, res) => {
       return res.status(400).json({ error: 'This survey has been closed' });
     }
 
-    const responseId = Response.create(surveyId, userId);
-    SurveyAnswer.createMany(responseId, answers);
+    if (!Array.isArray(answers) || answers.length === 0) {
+      return res.status(400).json({ error: 'Answers must be a non-empty array' });
+    }
+
+    const surveyQuestions = Question.findBySurveyId(surveyId);
+    const validQuestionIds = new Set(surveyQuestions.map((q) => q.id));
+    const normalizedAnswers = [];
+    for (const ans of answers) {
+      const questionId = parseInt(ans?.questionId, 10);
+      if (Number.isNaN(questionId) || !validQuestionIds.has(questionId)) {
+        return res.status(400).json({ error: 'Answer contains invalid questionId' });
+      }
+      if (ans?.selectedOption == null || ans.selectedOption === '') {
+        return res.status(400).json({ error: 'Answer contains missing selectedOption' });
+      }
+      normalizedAnswers.push({
+        questionId,
+        selectedOption: String(ans.selectedOption)
+      });
+    }
+
+    let responseId;
+    try {
+      responseId = Response.create(surveyId, userId);
+    } catch (dbErr) {
+      if (String(dbErr.message || '').includes('UNIQUE constraint failed')) {
+        return res.status(400).json({ error: 'You have already responded to this survey' });
+      }
+      throw dbErr;
+    }
+    SurveyAnswer.createMany(responseId, normalizedAnswers);
 
     res.status(201).json({ message: 'Response submitted successfully' });
   } catch (error) {
@@ -225,6 +255,25 @@ router.post('/', isAuthenticated, async (req, res) => {
   } catch (error) {
     console.error('Survey creation error:', error.message);
     res.status(400).json({ error: error.message });
+  }
+});
+
+router.put('/:id', isAuthenticated, async (req, res) => {
+  try {
+    const user = {
+      id: req.session.userId,
+      role: req.session.role,
+      classId: req.session.classId,
+      yearLevel: req.session.yearLevel
+    };
+
+    const surveyId = parseInt(req.params.id, 10);
+    await updateSurvey(user, surveyId, req.body);
+    Activity.log(req.session.userId, 'survey_updated', 'survey', surveyId, { title: req.body.title });
+    res.json({ id: surveyId, message: 'Survey updated successfully' });
+  } catch (error) {
+    const status = Number.isInteger(error.statusCode) ? error.statusCode : 400;
+    res.status(status).json({ error: error.message });
   }
 });
 

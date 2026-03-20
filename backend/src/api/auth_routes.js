@@ -25,13 +25,13 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
+    if (user.isActive === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    if (user.isActive === 0) {
-      return res.status(403).json({ error: 'Account is deactivated' });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     User.updateLastLogin(user.id);

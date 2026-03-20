@@ -5,6 +5,7 @@ import { Card, CardHeader, CardBody, Divider, Button } from "@heroui/react";
 import RadioQuestion from '../components/questions/RadioQuestion';
 import TrueFalseQuestion from '../components/questions/TrueFalseQuestion';
 import RankingQuestion from '../components/questions/RankingQuestion';
+import TextQuestion from '../components/questions/TextQuestion';
 import SurveyActions from '../components/SurveyActions';
 
 export default function TakeSurvey() {
@@ -18,7 +19,7 @@ export default function TakeSurvey() {
 
   useEffect(() => {
     fetchSurvey();
-  }, [id, fetchSurvey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const fetchSurvey = async () => {
     try {
@@ -42,7 +43,8 @@ export default function TakeSurvey() {
     setError('');
 
     // Check if all required questions are answered
-    const unanswered = survey.questions.filter(q => q.isRequired && !answers[q.id]);
+    const surveyQuestions = Array.isArray(survey?.questions) ? survey.questions : [];
+    const unanswered = surveyQuestions.filter(q => q.isRequired && !answers[q.id]);
     if (unanswered.length > 0) {
       setError('Please answer all required questions');
       return;
@@ -78,7 +80,7 @@ export default function TakeSurvey() {
         <Divider className="my-4" />
         <CardBody className="px-6 pb-6">
           <form onSubmit={(e) => e.preventDefault()}>
-            {survey.questions.map((q, index) => {
+            {(Array.isArray(survey?.questions) ? survey.questions : []).map((q, index) => {
               const type = q.type || 'multipleChoice';
               if (type === 'trueFalse') {
                 return (
@@ -98,6 +100,17 @@ export default function TakeSurvey() {
                     question={q}
                     index={index}
                     value={answers[q.id]}
+                    onChange={(val) => handleOptionChange(q.id, val)}
+                  />
+                );
+              }
+              if (type === 'text') {
+                return (
+                  <TextQuestion
+                    key={q.id}
+                    question={q}
+                    index={index}
+                    value={answers[q.id] || ''}
                     onChange={(val) => handleOptionChange(q.id, val)}
                   />
                 );

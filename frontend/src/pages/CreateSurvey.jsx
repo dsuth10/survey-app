@@ -50,6 +50,7 @@ export default function CreateSurvey() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(isEdit);
+  const [isLocked, setIsLocked] = useState(false);
 
   const [classes, setClasses] = useState([]);
   const [assignableStudents, setAssignableStudents] = useState([]);
@@ -77,6 +78,7 @@ export default function CreateSurvey() {
       if (d.description) setDescription(d.description || "");
       if (Array.isArray(d.questions) && d.questions.length) setQuestions(d.questions);
       if (d.sharing) setSharing(d.sharing);
+      if (typeof d.isRequiredSurvey === "boolean") setIsRequiredSurvey(d.isRequiredSurvey);
       if (d.opensAt) setOpensAt(d.opensAt);
       if (d.closesAt) setClosesAt(d.closesAt);
       if (d.targetClassId) setTargetClassId(d.targetClassId);
@@ -86,10 +88,12 @@ export default function CreateSurvey() {
   useEffect(() => {
     if (!isEdit || !surveyId) return;
     setLoadingData(true);
-    axios
-      .get(`/api/surveys/${surveyId}`)
-      .then((res) => {
-        const { survey, questions: qs } = res.data;
+    Promise.all([
+      axios.get(`/api/surveys/${surveyId}`),
+      axios.get(`/api/surveys/${surveyId}/results`).catch(() => null),
+    ])
+      .then(([surveyRes, resultsRes]) => {
+        const { survey, questions: qs } = surveyRes.data;
         setTitle(survey.title || "");
         setDescription(survey.description || "");
         setOpensAt(survey.opensAt ? survey.opensAt.slice(0, 16) : "");
@@ -98,8 +102,9 @@ export default function CreateSurvey() {
           sharedWithClass: !!survey.sharedWithClass,
           sharedWithYearLevel: !!survey.sharedWithYearLevel,
           sharedWithSchool: !!survey.sharedWithSchool,
-          targetUserIds: [],
+          targetUserIds: survey.targetUserIds || [],
         });
+        setTargetClassId(survey.targetClassId ? String(survey.targetClassId) : "");
         if (Array.isArray(qs) && qs.length) {
           setQuestions(
             qs.map((q) => ({
@@ -109,6 +114,10 @@ export default function CreateSurvey() {
               isRequired: q.isRequired !== 0,
             }))
           );
+        }
+        // Lock immediately if this survey already has responses
+        if (resultsRes && (resultsRes.data?.totalResponses ?? 0) > 0) {
+          setIsLocked(true);
         }
       })
       .catch(() => setError("Failed to load survey"))
@@ -197,6 +206,7 @@ export default function CreateSurvey() {
       opensAt: opensAt || null,
       closesAt: closesAt || null,
       targetClassId: targetClassId || null,
+      isRequired: isRequiredSurvey,
     };
   };
 
@@ -209,10 +219,20 @@ export default function CreateSurvey() {
     setMessage("");
     setLoading(true);
     try {
-      await axios.post("/api/surveys", buildPayload());
+      if (isEdit) {
+        await axios.put(`/api/surveys/${surveyId}`, buildPayload());
+      } else {
+        await axios.post("/api/surveys", buildPayload());
+      }
+      localStorage.removeItem("surveyBuilderDraft");
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to create survey");
+      if (err.response?.status === 409) {
+        setIsLocked(true);
+        setError("");
+      } else {
+        setError(err.response?.data?.error || (isEdit ? "Failed to update survey" : "Failed to create survey"));
+      }
     } finally {
       setLoading(false);
     }
@@ -220,7 +240,7 @@ export default function CreateSurvey() {
 
   const handleSaveDraft = () => {
     try {
-      localStorage.setItem("surveyBuilderDraft", JSON.stringify({ title, description, questions, sharing, opensAt, closesAt, targetClassId: targetClassId || undefined }));
+      localStorage.setItem("surveyBuilderDraft", JSON.stringify({ title, description, questions, sharing, opensAt, closesAt, targetClassId: targetClassId || undefined, isRequiredSurvey }));
       setError("");
       setMessage("Draft saved locally. Use Publish to create the survey.");
     } catch (e) {
@@ -239,7 +259,10 @@ export default function CreateSurvey() {
   };
 
   const handleDiscard = () => {
-    if (window.confirm("Discard this survey? Unsaved changes will be lost.")) navigate("/dashboard");
+    if (window.confirm("Discard this survey? Unsaved changes will be lost.")) {
+      localStorage.removeItem("surveyBuilderDraft");
+      navigate("/dashboard");
+    }
   };
 
   const displayName = user?.displayName || user?.username || "User";
@@ -276,12 +299,23 @@ export default function CreateSurvey() {
             <span className="material-symbols-outlined text-sm">visibility</span>
             Preview
           </button>
-          <button type="button" onClick={handleSaveDraft} disabled={loading} className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all disabled:opacity-50">
+          <button type="button" onClick={handleSaveDraft} disabled={loading || isLocked} className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
             Save Draft
           </button>
-          <button type="button" onClick={handlePublish} disabled={loading} className="px-6 py-2 rounded-lg bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50">
-            Publish
-          </button>
+          {isLocked ? (
+            <button
+              type="button"
+              disabled
+              className="flex items-center gap-2 px-6 py-2 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-sm font-bold cursor-not-allowed border border-amber-300 dark:border-amber-700"
+            >
+              <span className="material-symbols-outlined text-sm">lock</span>
+              Locked
+            </button>
+          ) : (
+            <button type="button" onClick={handlePublish} disabled={loading} className="px-6 py-2 rounded-lg bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50">
+              {isEdit ? "Save Changes" : "Publish"}
+            </button>
+          )}
           <div className="ml-2 h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden border-2 border-white dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-sm">
             {getInitials(displayName)}
           </div>
@@ -319,6 +353,30 @@ export default function CreateSurvey() {
                 rows={2}
               />
             </div>
+
+            {isLocked && (
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
+                <span className="material-symbols-outlined text-amber-500 dark:text-amber-400 mt-0.5 shrink-0">lock</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-amber-800 dark:text-amber-200 leading-snug">
+                    This survey can no longer be edited
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1 leading-relaxed">
+                    Responses have already been submitted. Editing questions or settings after responses exist would corrupt result data.
+                  </p>
+                  {isEdit && (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/results/${surveyId}`)}
+                      className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 underline underline-offset-2 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm">bar_chart</span>
+                      View survey results
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 text-sm">

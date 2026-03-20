@@ -11,12 +11,13 @@ import ManageClass from './pages/ManageClass';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
 import MainLayout from './components/MainLayout';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const ProtectedRoute = ({ children, noLayout }) => {
   const { user, loading } = useAuth();
 
   if (loading) return <div>Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/login" replace />;
 
   if (noLayout) return <>{children}</>;
   return <MainLayout>{children}</MainLayout>;
@@ -27,7 +28,8 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <Router>
-          <Routes>
+          <ErrorBoundary>
+            <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route 
               path="/" 
@@ -89,7 +91,8 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-          </Routes>
+            </Routes>
+          </ErrorBoundary>
         </Router>
       </AuthProvider>
     </ThemeProvider>

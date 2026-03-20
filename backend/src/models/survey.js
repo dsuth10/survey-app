@@ -45,6 +45,40 @@ const Survey = {
 
   findByCreatorId: (creatorId) => {
     return db.prepare('SELECT * FROM surveys WHERE creatorId = ?').all(creatorId);
+  },
+
+  update: (id, surveyData) => {
+    const {
+      title,
+      description,
+      isAnonymous,
+      sharedWithClass,
+      sharedWithYearLevel,
+      sharedWithSchool,
+      sharedWithIndividuals = false,
+      opensAt = null,
+      closesAt = null,
+      targetClassId = null
+    } = surveyData;
+    db.prepare(`
+      UPDATE surveys
+      SET title = ?, description = ?, isAnonymous = ?,
+          sharedWithClass = ?, sharedWithYearLevel = ?, sharedWithSchool = ?, sharedWithIndividuals = ?,
+          opensAt = ?, closesAt = ?, targetClassId = ?
+      WHERE id = ?
+    `).run(
+      title,
+      description,
+      isAnonymous ? 1 : 0,
+      sharedWithClass ? 1 : 0,
+      sharedWithYearLevel ? 1 : 0,
+      sharedWithSchool ? 1 : 0,
+      sharedWithIndividuals ? 1 : 0,
+      opensAt || null,
+      closesAt || null,
+      targetClassId || null,
+      id
+    );
   }
 };
 
@@ -78,6 +112,14 @@ const Question = {
       ...q,
       options: q.options != null ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : []
     }));
+  },
+
+  replaceAll: (surveyId, questions) => {
+    const replaceQuestions = db.transaction((nextSurveyId, nextQuestions) => {
+      db.prepare('DELETE FROM questions WHERE surveyId = ?').run(nextSurveyId);
+      Question.createMany(nextSurveyId, nextQuestions);
+    });
+    replaceQuestions(surveyId, questions);
   }
 };
 
@@ -97,6 +139,14 @@ const SurveyTarget = {
 
   getBySurveyId: (surveyId) => {
     return db.prepare('SELECT userId FROM survey_targets WHERE surveyId = ?').all(surveyId).map((r) => r.userId);
+  },
+
+  replaceMany: (surveyId, userIds) => {
+    const replaceTargets = db.transaction((nextSurveyId, nextUserIds) => {
+      db.prepare('DELETE FROM survey_targets WHERE surveyId = ?').run(nextSurveyId);
+      SurveyTarget.addMany(nextSurveyId, nextUserIds);
+    });
+    replaceTargets(surveyId, userIds || []);
   }
 };
 

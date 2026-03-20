@@ -2,6 +2,18 @@ import React from 'react';
 
 export default function ResponseDetails({ responses, questions, isAnonymous }) {
   if (!responses || responses.length === 0) return <p>No individual responses yet.</p>;
+  const formatAnswer = (value) => {
+    if (value == null || value === '') return '-';
+    if (typeof value === 'string' && value.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) return parsed.join(' -> ');
+      } catch (_) {
+        // Ignore parse failures and show raw value
+      }
+    }
+    return value;
+  };
 
   return (
     <div style={{ marginTop: '30px' }}>
@@ -26,16 +38,11 @@ export default function ResponseDetails({ responses, questions, isAnonymous }) {
                   {new Date(resp.submittedAt).toLocaleString()}
                 </td>
                 <td style={{ border: '1px solid #ddd', padding: '12px' }}>
-                  <span style={{ 
-                    fontStyle: isAnonymous ? 'italic' : 'normal',
-                    color: isAnonymous ? '#666' : 'inherit'
-                  }}>
-                    {resp.userDisplayName}
-                  </span>
+                  <span>{isAnonymous ? 'Anonymous' : resp.userDisplayName}</span>
                 </td>
                 {questions.map(q => (
                   <td key={q.questionId} style={{ border: '1px solid #ddd', padding: '12px' }}>
-                    {resp.answers[q.questionId] || '-'}
+                    {formatAnswer(resp.answers[q.questionId])}
                   </td>
                 ))}
               </tr>

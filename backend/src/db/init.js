@@ -101,6 +101,7 @@ function initDb() {
     CREATE INDEX IF NOT EXISTS idx_questions_surveyId ON questions(surveyId);
     CREATE INDEX IF NOT EXISTS idx_responses_surveyId ON responses(surveyId);
     CREATE INDEX IF NOT EXISTS idx_responses_userId ON responses(userId);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_responses_survey_user_unique ON responses(surveyId, userId);
     CREATE INDEX IF NOT EXISTS idx_survey_answers_responseId ON survey_answers(responseId);
     CREATE INDEX IF NOT EXISTS idx_survey_answers_questionId ON survey_answers(questionId);
     CREATE INDEX IF NOT EXISTS idx_survey_targets_surveyId ON survey_targets(surveyId);

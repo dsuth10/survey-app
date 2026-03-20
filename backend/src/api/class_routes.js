@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const DistributionPermission = require('../models/permissions');
 const Class = require('../models/class');
-const { isAuthenticated, isTeacher } = require('./auth');
+const { isTeacher } = require('./auth');
 
 /**
  * @route GET /api/classes
@@ -24,9 +24,12 @@ router.get('/', isTeacher, async (req, res) => {
  * @desc Get distribution permissions for a class
  * @access Private
  */
-router.get('/:id/permissions', isAuthenticated, async (req, res) => {
+router.get('/:id/permissions', isTeacher, async (req, res) => {
   try {
-    const classId = parseInt(req.params.id);
+    const classId = parseInt(req.params.id, 10);
+    if (Number.isNaN(classId)) {
+      return res.status(400).json({ error: 'Invalid class id' });
+    }
     const permissions = DistributionPermission.findByClassId(classId);
 
     if (!permissions) {
@@ -52,7 +55,10 @@ router.get('/:id/permissions', isAuthenticated, async (req, res) => {
  */
 router.put('/:id/permissions', isTeacher, async (req, res) => {
   try {
-    const classId = parseInt(req.params.id);
+    const classId = parseInt(req.params.id, 10);
+    if (Number.isNaN(classId)) {
+      return res.status(400).json({ error: 'Invalid class id' });
+    }
     const { canShareWithClass, canShareWithYearLevel, canShareWithSchool } = req.body;
 
     // Check if class exists

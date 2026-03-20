@@ -11,9 +11,9 @@ const db = require('../db/connection');
  */
 function getVisibleSurveys(user) {
   const openCondition = `(
-    (s.opensAt IS NULL AND s.closesAt IS NULL AND s.closedAt IS NULL)
-    OR
-    ((s.opensAt IS NULL OR datetime(s.opensAt) <= datetime('now', 'localtime')) AND (s.closesAt IS NULL OR datetime(s.closesAt) >= datetime('now', 'localtime')) AND (s.closedAt IS NULL))
+    (s.opensAt IS NULL OR datetime(s.opensAt) <= datetime('now'))
+    AND (s.closesAt IS NULL OR datetime(s.closesAt) >= datetime('now'))
+    AND (s.closedAt IS NULL)
   )`;
 
   if (user.role === 'teacher' || user.role === 'admin') {
@@ -21,7 +21,6 @@ function getVisibleSurveys(user) {
       SELECT s.*, u.displayName as creatorName 
       FROM surveys s
       JOIN users u ON s.creatorId = u.id
-      WHERE ${openCondition}
       ORDER BY s.createdAt DESC
     `).all();
   }

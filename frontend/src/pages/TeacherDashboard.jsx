@@ -34,8 +34,8 @@ export default function TeacherDashboard() {
     if (user?.id) load();
   }, [user?.id]);
 
-  const mySurveys = surveys.filter((s) => s.creatorId === user?.id);
-  const activeSurveys = mySurveys.filter((s) => !s.closedAt);
+  const mySurveys = surveys;
+  const activeSurveys = mySurveys.filter((s) => !s.closesAt && !s.closedAt);
   const totalStudents = classes.reduce((sum, c) => sum + (c.studentCount || 0), 0);
 
   const surveysWithCompletion = mySurveys.filter(s => s.completion?.total > 0);
@@ -282,7 +282,7 @@ export default function TeacherDashboard() {
                         </tr>
                       ) : (
                         mySurveys.slice(0, 5).map((s) => {
-                          const isOpen = !s.closedAt;
+                          const isOpen = !s.closesAt && !s.closedAt;
                           const completion = s.completion != null ? Math.round((s.completion.responded / Math.max(1, s.completion.total)) * 100) : null;
                           return (
                             <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
