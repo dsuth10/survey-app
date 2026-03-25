@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
+    "start:prod": "node scripts/start-prod.js",
     "start:lan": "node scripts/start-lan.js",
     "dev": "nodemon src/index.js",
     "mcp": "node src/mcp/server.js",

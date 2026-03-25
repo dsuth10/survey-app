@@ -1,59 +1,139 @@
 # Hosting the survey app on a school LAN
 
-Use this when students on other computers need a **stable URL** to the host PC.
+## Why use a production build for the classroom?
 
-## Recommended: one URL (production)
+The stack is **React + Vite** (dev on port **3005**) and **Express** (port **3006**). In dev, Vite proxies `/api` to `http://localhost:3006` **on the teacher machine only** (the proxy runs server-side). The frontend uses **relative** `/api/...` URLs, so students who open `http://<teacher-ip>:3005` still talk to the teacher’s host for API calls.
 
-The UI and API are served together on **one port** (default **3006**). Students only bookmark `http://<host-IPv4>:3006`.
+For class use, **serving the built app from Express** is still the better default: **one port**, no Vite dev server, same origin for UI and API, and fewer moving parts.
 
-1. From the **repository root** (folder that contains `frontend` and `backend`):
+**Do not** use Python’s `http.server` for this app: you need Express for `/api`, SQLite, and sessions.
 
-   ```bash
-   npm run serve:lan
-   ```
+---
 
-   This builds the React app, then starts the backend with `NODE_ENV=production` and prints shareable `http://…` lines.
+## Recommended: one command (prints your LAN URLs)
 
-2. Or manually:
+From the **repository root**:
 
-   ```bash
-   npm run build --prefix frontend
-   npm run start:lan --prefix backend
-   ```
+```bash
+npm run serve:lan
+```
 
-3. After you change frontend code, run `serve:lan` again (or rebuild + `start:lan`) so students get the new UI.
+This runs `npm run build` in `frontend/`, then starts the backend in production and prints `http://<your-LAN-IP>:3006` lines for students.
 
-**Environment (optional):** create `backend/.env` if you need a custom port or session secret:
+---
 
-- `PORT` — listen port (default `3006`)
-- `SESSION_SECRET` — long random string (recommended for shared hosts)
-- `USE_HTTPS=true` — only if you terminate TLS in front of the app; leave unset for plain `http://` on the LAN
+## Alternative: `.env` + `npm start` (matches a manual production setup)
 
-## Development: two processes (Vite + API)
+### 1. Build the frontend
 
-If you use `npm run dev` from the repo root, Vite is configured with **`host: true`** so the dev UI is reachable at:
+```bash
+cd frontend
+npm run build
+```
 
-`http://<host-IPv4>:3005`
+Or from the repo root: `npm run build --prefix frontend`.
 
-The backend must still be running on **3006** on the same PC (the dev server proxies `/api` to `localhost:3006`).
+This creates `frontend/dist/`.
 
-## Host checklist (Windows)
+### 2. Configure the backend
 
-1. **Correct address** — On the host, run `ipconfig` and use the **IPv4** address of the active Wi‑Fi or Ethernet adapter (often `192.168.x.x` or `10.x.x.x`). Students must **not** use `localhost` on their own machines; that refers to their PC, not yours.
+Copy the example env file and edit it:
 
-2. **Windows Firewall** — Allow **inbound** TCP on the port you use:
-   - Production: typically **3006** (or your `PORT`)
-   - Dev-only: **3005** (Vite) and **3006** (API)
+```bash
+cd backend
+cp .env.example .env
+```
 
-   In *Windows Defender Firewall → Advanced settings → Inbound Rules*, create a rule for the chosen port(s) on the **Private** profile (typical for trusted school/classroom networks).
+Set at least:
 
-3. **Same network** — Host and students must be on a network segment where devices can talk to each other.
+- `NODE_ENV=production` — required so Express serves `frontend/dist`
+- `PORT=3006` — optional (default is 3006)
+- `SESSION_SECRET` — use a long random string for real classroom use
 
-4. **If nothing connects** — Many school Wi‑Fi networks use **client / AP isolation** (wireless clients cannot reach each other). That cannot be fixed in app code. Ask IT for a VLAN or SSID without isolation, use wired Ethernet on the same subnet, or use an approved tunnel/service if external access is allowed.
+### 3. Start the server
 
-## Quick reference
+```bash
+cd backend
+npm start
+```
 
-| Mode            | Student URL                 | Firewall (typical) |
-|----------------|-----------------------------|--------------------|
-| Production     | `http://<host-ip>:3006`     | TCP 3006           |
-| Dev (Vite)     | `http://<host-ip>:3005`     | TCP 3005 and 3006  |
+Or from the **repository root** (after a build):
+
+```bash
+npm run classroom
+```
+
+(`classroom` = build frontend + `start:prod`, which forces production if `.env` forgot `NODE_ENV`.)
+
+Students open **`http://<host-LAN-IPv4>:3006/`** (same port for pages and `/api`).
+
+---
+
+## Find your LAN IP
+
+**Windows (PowerShell / CMD):**
+
+```text
+ipconfig
+```
+
+Use the **IPv4** address of the active Wi‑Fi or Ethernet adapter (e.g. `192.168.x.x`, `10.x.x.x`).
+
+**Linux (e.g. Linux Mint):**
+
+```bash
+ip -4 addr show
+```
+
+or:
+
+```bash
+hostname -I
+```
+
+---
+
+## Firewall
+
+**Windows:** *Windows Defender Firewall → Advanced settings → Inbound Rules* — allow **TCP** on your app port (default **3006**) for the **Private** profile.
+
+**Linux (ufw):**
+
+```bash
+sudo ufw allow 3006/tcp
+sudo ufw reload
+```
+
+---
+
+## Optional: keep the server running (PM2)
+
+Useful if closing the terminal would stop Node.
+
+```bash
+npm install -g pm2
+cd backend
+pm2 start npm --name survey-app -- run start:prod
+pm2 save
+```
+
+Ensure `frontend/dist` exists (`npm run build` in `frontend`) and `backend/.env` is set for production before starting.
+
+---
+
+## Development vs classroom
+
+| Mode | What you run | Typical URL on the host |
+|------|----------------|---------------------------|
+| **Development** | From repo root: `npm run dev` (backend + Vite) | `http://localhost:3005` (API proxied to 3006 on the same PC) |
+| **Classroom (LAN)** | `npm run serve:lan` or build + `npm run classroom` / `start:prod` | `http://<LAN-IP>:3006` for everyone |
+
+For dev access from other machines on the LAN, Vite is configured with **`host: true`** so `http://<LAN-IP>:3005` works while the backend listens on **3006**; you still need firewall rules for both ports. Prefer **production on 3006** for lessons.
+
+---
+
+## Host checklist
+
+1. **Student URL** — They must use **`http://<your-LAN-IP>:3006`**, not `localhost` on their own computer.
+2. **Same network** — Host and clients must reach each other (watch for **Wi‑Fi client isolation** on school networks).
+3. **Rebuild after UI changes** — Run `npm run build` in `frontend` (or `serve:lan` / `classroom`) before class if you changed the React app.
