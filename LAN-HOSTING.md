@@ -20,6 +20,11 @@ npm run serve:lan
 
 This runs `npm run build` in `frontend/`, then starts the backend in production and prints `http://<your-LAN-IP>:3006` lines for students.
 
+Notes:
+
+- If you have **no `backend/.env`**, this still works (it uses port **3006** and a default session secret).
+- For real classroom use, you should still set `SESSION_SECRET` in `backend/.env`.
+
 ---
 
 ## Alternative: `.env` + `npm start` (matches a manual production setup)
@@ -42,6 +47,13 @@ Copy the example env file and edit it:
 ```bash
 cd backend
 cp .env.example .env
+```
+
+On Windows PowerShell, use:
+
+```powershell
+cd backend
+Copy-Item .env.example .env
 ```
 
 Set at least:
