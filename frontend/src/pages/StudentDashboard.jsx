@@ -4,14 +4,7 @@ import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import SignOutButton from "../components/SignOutButton";
 
-/** Survey is open for responses: not manually closed, within opensAt/closesAt window. */
-function isSurveyOpen(s) {
-  const now = new Date();
-  if (s.closedAt) return false;
-  if (s.opensAt && new Date(s.opensAt) > now) return false;
-  if (s.closesAt && new Date(s.closesAt) < now) return false;
-  return true;
-}
+import { isSurveyOpen, formatDue } from "../utils/surveyUtils";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -38,12 +31,17 @@ export default function StudentDashboard() {
     if (user?.id) load();
   }, [user?.id]);
 
-  const completedSurveys = surveys.filter((s) => s.hasResponded && s.creatorId !== user?.id);
-  const myCreatedSurveys = surveys.filter((s) => s.creatorId === user?.id);
-  const pendingSurveys = surveys.filter(
+  const filteredSurveys = surveys.filter(s => 
+    s.title.toLowerCase().includes(search.toLowerCase()) ||
+    (s.description || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  const completedSurveys = filteredSurveys.filter((s) => s.hasResponded && s.creatorId !== user?.id);
+  const myCreatedSurveys = filteredSurveys.filter((s) => s.creatorId === user?.id);
+  const pendingSurveys = filteredSurveys.filter(
     (s) => !s.hasResponded && isSurveyOpen(s) && s.creatorId !== user?.id
   );
-  const totalRelevantSurveys = surveys.filter(s => s.creatorId !== user?.id).length;
+  const totalRelevantSurveys = filteredSurveys.filter((s) => s.creatorId !== user?.id).length;
   const responseRate = totalRelevantSurveys > 0
     ? Math.round((completedSurveys.length / totalRelevantSurveys) * 100)
     : 0;
@@ -69,16 +67,7 @@ export default function StudentDashboard() {
     }
   };
 
-  const formatDue = (survey) => {
-    if (!survey.closesAt) return "No due date";
-    const d = new Date(survey.closesAt);
-    const now = new Date();
-    const diffDays = Math.ceil((d - now) / 86400000);
-    if (diffDays < 0) return "Overdue";
-    if (diffDays === 0) return "Due today";
-    if (diffDays === 1) return "Due tomorrow";
-    return `Due in ${diffDays} days (${d.toLocaleDateString()})`;
-  };
+
 
   if (!user || user.role !== "student") {
     return (

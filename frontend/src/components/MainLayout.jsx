@@ -21,7 +21,6 @@ export default function MainLayout({ children }) {
     { label: "Dashboard", path: "/dashboard" },
     { label: "Browse", path: "/browse" },
     { label: "Create Survey", path: "/create" },
-    ...(user?.role === "admin" ? [{ label: "Admin", path: "/admin" }] : []),
   ];
 
   return (

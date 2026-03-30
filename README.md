@@ -3,17 +3,17 @@
 A LAN-first survey application for schools, enabling teachers and students to create, distribute, and respond to surveys.
 
 ## Features
-- **Survey Creation**: Create surveys with multiple-choice questions.
-- **Role-Based Distribution**: Control who can see surveys (Class, Year Level, or School).
-- **Anonymous Responses**: Support for both anonymous and identified surveys.
-- **Results Dashboard**: View aggregated results with automated privacy masking.
-- **Class Management**: Teachers can manage sharing permissions for their classes.
+- **Admin Dashboard**: Real-time analytics, user import (CSV), and class management.
+- **Teacher/Student Dashboards**: Role-based access with real-time search and survey status tracking.
+- **Survey Creation**: Multi-question support (Multiple Choice, True/False, Ranking, Text).
+- **Role-Based Sharing**: Granular control (Class, Year Level, or School).
+- **Advanced Analytics**: Aggregated results with automated privacy masking and completion tracking.
+- **Modern UI**: Full Dark Mode support with HeroUI (f.k.a. NextUI) and Tailwind CSS.
 
 ## Tech Stack
-- **Frontend**: React (Vite)
-- **Backend**: Node.js (Express)
-- **Database**: SQLite (better-sqlite3)
-- **Session**: express-session with connect-sqlite3
+- **Frontend**: React (Vite), HeroUI, Tailwind CSS, Date-fns.
+- **Backend**: Node.js (Express), JSON Web Token (JWT), Axios.
+- **Database**: SQLite (better-sqlite3) with session persistence.
 
 ## LAN Deployment Instructions
 

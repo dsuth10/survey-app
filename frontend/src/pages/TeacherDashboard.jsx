@@ -4,14 +4,7 @@ import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import SignOutButton from "../components/SignOutButton";
 
-/** Survey is open for responses: not manually closed, within opensAt/closesAt window. */
-function isSurveyOpen(s) {
-  const now = new Date();
-  if (s.closedAt) return false;
-  if (s.opensAt && new Date(s.opensAt) > now) return false;
-  if (s.closesAt && new Date(s.closesAt) < now) return false;
-  return true;
-}
+import { isSurveyOpen } from "../utils/surveyUtils";
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
@@ -47,7 +40,10 @@ export default function TeacherDashboard() {
     if (user?.id) load();
   }, [user?.id]);
 
-  const mySurveys = surveys;
+  const mySurveys = surveys.filter(s => 
+    s.title.toLowerCase().includes(search.toLowerCase()) || 
+    (s.description || "").toLowerCase().includes(search.toLowerCase())
+  );
   const deletableSurveyCount = mySurveys.filter((s) => s.creatorRole === "student").length;
   const activeSurveys = mySurveys.filter(isSurveyOpen);
   const totalStudents = classes.reduce((sum, c) => sum + (c.studentCount || 0), 0);

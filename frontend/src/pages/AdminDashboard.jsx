@@ -15,6 +15,12 @@ import {
 } from "@heroui/react";
 import { useAuth } from "../contexts/AuthContext";
 import SignOutButton from "../components/SignOutButton";
+import { 
+  parseCSV, 
+  mapCSVRowToUser, 
+  getInitials, 
+  formatLastLogin 
+} from "../utils/surveyUtils";
 
 const ROLES = ["student", "teacher", "admin"];
 
@@ -23,58 +29,7 @@ const USERS_PER_PAGE = 25;
 /** When searching, load all users for client-side filter (school size). */
 const USERS_SEARCH_FETCH_LIMIT = 10000;
 
-function parseCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
-  const header = lines[0].toLowerCase().replace(/\s/g, "").split(",");
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(",").map((s) => s.trim().replace(/^"|"$/g, ""));
-    const row = {};
-    header.forEach((h, j) => {
-      row[h] = values[j] ?? "";
-    });
-    rows.push(row);
-  }
-  return rows;
-}
 
-function mapCSVRowToUser(row) {
-  const get = (k) => (row[k] ?? row[k.replace(/\s/g, "")] ?? "").trim();
-  return {
-    username: get("username"),
-    displayName: get("displayname") || get("displayName"),
-    role: (get("role") || "student").toLowerCase(),
-    class: get("class"),
-    yearLevel: get("yearlevel") || get("yearLevel"),
-    password: get("password"),
-  };
-}
-
-function getInitials(name) {
-  if (!name) return "?";
-  return name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-function formatLastLogin(dateStr) {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now - d;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffMins < 60) return `${diffMins} mins ago`;
-  if (diffHours < 24) return `${diffHours} hours ago`;
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return d.toLocaleString();
-}
 
 function roleBadgeClass(role) {
   if (role === "admin")
@@ -101,6 +56,11 @@ export default function AdminDashboard() {
   const [page, setPage] = useState(1);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deletingSurveyId, setDeletingSurveyId] = useState(null);
+  const [dashboardData, setDashboardData] = useState({
+    stats: { totalUsers: 0, totalSurveys: 0, totalResponses: 0 },
+    activities: [],
+    surveyStatusList: []
+  });
 
   const addUserModal = useDisclosure();
   const editUserModal = useDisclosure();
@@ -210,10 +170,25 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchDashboardData = async () => {
+    try {
+      const res = await axios.get("/api/admin/dashboard-data");
+      setDashboardData(res.data);
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+    }
+  };
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await Promise.all([fetchClasses(), fetchSurveys(), fetchTeachers(), fetchStudents()]);
+      await Promise.all([
+        fetchClasses(), 
+        fetchSurveys(), 
+        fetchTeachers(), 
+        fetchStudents(),
+        fetchDashboardData()
+      ]);
       setLoading(false);
     };
     load();
@@ -479,7 +454,7 @@ export default function AdminDashboard() {
   };
 
   const activeSurveys = surveys.filter((s) => !s.closedAt);
-  const surveyStatusList = surveys.slice(0, 5);
+  const surveyStatusList = dashboardData.surveyStatusList;
 
   if (!authUser || authUser.role !== "admin") {
     return (
@@ -592,42 +567,36 @@ export default function AdminDashboard() {
             <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
               <div className="flex justify-between items-start mb-4">
                 <span className="material-symbols-outlined p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg">person</span>
-                <span className="text-green-600 text-xs font-bold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">trending_up</span>—
-                </span>
               </div>
               <p className="text-slate-500 text-sm font-medium">Total Users</p>
-              <p className="text-3xl font-bold mt-1">{loading ? "—" : totalUsers}</p>
+              <p className="text-3xl font-bold mt-1 text-slate-900 dark:text-white">
+                {loading ? "—" : dashboardData.stats.totalUsers || totalUsers}
+              </p>
             </div>
             <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
               <div className="flex justify-between items-start mb-4">
                 <span className="material-symbols-outlined p-2 bg-purple-50 dark:bg-purple-900/20 text-purple-600 rounded-lg">assignment_turned_in</span>
-                <span className="text-green-600 text-xs font-bold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">trending_up</span>—
-                </span>
               </div>
-              <p className="text-slate-500 text-sm font-medium">Active Surveys</p>
-              <p className="text-3xl font-bold mt-1">{loading ? "—" : activeSurveys.length}</p>
+              <p className="text-slate-500 text-sm font-medium">Total Surveys</p>
+              <p className="text-3xl font-bold mt-1 text-slate-900 dark:text-white">
+                {loading ? "—" : dashboardData.stats.totalSurveys}
+              </p>
             </div>
             <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
               <div className="flex justify-between items-start mb-4">
                 <span className="material-symbols-outlined p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-lg">school</span>
-                <span className="text-red-600 text-xs font-bold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">trending_down</span>—
-                </span>
               </div>
               <p className="text-slate-500 text-sm font-medium">Classes</p>
-              <p className="text-3xl font-bold mt-1">{loading ? "—" : classes.length}</p>
+              <p className="text-3xl font-bold mt-1 text-slate-900 dark:text-white">{loading ? "—" : classes.length}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
               <div className="flex justify-between items-start mb-4">
-                <span className="material-symbols-outlined p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-lg">pending_actions</span>
-                <span className="text-green-600 text-xs font-bold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">trending_up</span>—
-                </span>
+                <span className="material-symbols-outlined p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-lg">analytics</span>
               </div>
-              <p className="text-slate-500 text-sm font-medium">Pending Responses</p>
-              <p className="text-3xl font-bold mt-1">—</p>
+              <p className="text-slate-500 text-sm font-medium">Total Responses</p>
+              <p className="text-3xl font-bold mt-1 text-slate-900 dark:text-white">
+                {loading ? "—" : dashboardData.stats.totalResponses}
+              </p>
             </div>
           </div>
 
@@ -917,17 +886,30 @@ export default function AdminDashboard() {
               <section className="space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider px-2">Recent Activity</h3>
                 <div className="space-y-4 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100 dark:before:bg-slate-800 pl-2">
-                  <div className="relative flex gap-4">
-                    <div className="size-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center z-10 shrink-0">
-                      <span className="material-symbols-outlined text-[18px] text-blue-600">post_add</span>
-                    </div>
-                    <div className="flex-1 pt-1">
-                      <p className="text-sm font-medium leading-snug">Survey activity appears here.</p>
-                      <p className="text-xs text-slate-500 mt-1">—</p>
-                    </div>
-                  </div>
+                  {dashboardData.activities.length === 0 ? (
+                    <p className="text-sm text-slate-500 pl-8">No recent activity.</p>
+                  ) : (
+                    dashboardData.activities.slice(0, 5).map((act) => (
+                      <div key={act.id} className="relative flex gap-4">
+                        <div className="size-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center z-10 shrink-0">
+                          <span className="material-symbols-outlined text-[18px] text-blue-600">
+                            {act.action.includes('create') ? 'add' : act.action.includes('delete') ? 'delete' : 'history'}
+                          </span>
+                        </div>
+                        <div className="flex-1 pt-1">
+                          <p className="text-sm font-medium leading-snug text-slate-700 dark:text-slate-300">
+                            {act.action.replace(/_/g, ' ')} 
+                            <span className="text-slate-400 font-normal"> on {act.targetType}</span>
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">{new Date(act.timestamp).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-                <button type="button" className="w-full text-center text-xs font-bold text-primary hover:underline py-2">View All Activity</button>
+                {dashboardData.activities.length > 5 && (
+                  <button type="button" className="w-full text-center text-xs font-bold text-primary hover:underline py-2">View All Activity</button>
+                )}
               </section>
 
               <section className="bg-slate-900 dark:bg-slate-800 text-white p-6 rounded-xl overflow-hidden relative">
@@ -937,14 +919,21 @@ export default function AdminDashboard() {
                     {surveyStatusList.length === 0 ? (
                       <p className="text-sm text-slate-400">No surveys</p>
                     ) : (
-                      surveyStatusList.slice(0, 3).map((s) => (
-                        <div key={s.id}>
+                      surveyStatusList.map((s) => (
+                        <div key={s.id} className="group cursor-pointer" onClick={() => navigate(`/results/${s.id}`)}>
                           <div className="flex justify-between text-xs font-medium mb-1">
-                            <span className="truncate pr-2">{s.title}</span>
-                            <span>{s.closedAt ? "Closed" : "Open"}</span>
+                            <span className="truncate pr-2 group-hover:text-primary transition-colors">{s.title}</span>
+                            <span className={s.closedAt ? "text-slate-500" : "text-green-400"}>{s.closedAt ? "Closed" : "Active"}</span>
                           </div>
                           <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                            <div className="h-full bg-primary w-[50%]" />
+                            <div 
+                              className={`h-full transition-all duration-500 ${s.completionRate > 80 ? 'bg-green-500' : 'bg-primary'}`} 
+                              style={{ width: `${s.completionRate}%` }} 
+                            />
+                          </div>
+                          <div className="flex justify-between mt-1 text-[10px] text-slate-500">
+                            <span>{s.completionRate}% complete</span>
+                            <span>{s.responseCount}/{s.expectedCount}</span>
                           </div>
                         </div>
                       ))

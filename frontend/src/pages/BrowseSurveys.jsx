@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardBody, Button, Skeleton, Chip, Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 import { useAuth } from '../contexts/AuthContext';
+import { isSurveyOpen } from '../utils/surveyUtils';
 
 export default function BrowseSurveys() {
   const { user } = useAuth();
@@ -102,10 +102,13 @@ export default function BrowseSurveys() {
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex-grow">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold">{survey.title}</h3>
-                      {survey.hasResponded && (
-                        <Chip color="success" variant="flat" size="sm">✓ Responded</Chip>
-                      )}
+                       <h3 className="text-xl font-bold">{survey.title}</h3>
+                       {survey.hasResponded && (
+                         <Chip color="success" variant="flat" size="sm">✓ Responded</Chip>
+                       )}
+                       {!isSurveyOpen(survey) && (
+                         <Chip color="danger" variant="flat" size="sm">✕ Closed</Chip>
+                       )}
                     </div>
                     <p className="text-default-500 text-sm mb-4">
                       Created by: {survey.creatorName} • {new Date(survey.createdAt).toLocaleDateString()}
@@ -120,8 +123,9 @@ export default function BrowseSurveys() {
                         color="primary"
                         variant="shadow"
                         onPress={() => navigate(`/take-survey/${survey.id}`)}
+                        isDisabled={!isSurveyOpen(survey)}
                       >
-                        Take Survey
+                        {isSurveyOpen(survey) ? 'Take Survey' : 'Closed'}
                       </Button>
                     ) : (
                       <>

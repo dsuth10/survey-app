@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Card, CardHeader, CardBody, Divider, Button } from "@heroui/react";
+import { Card, CardHeader, CardBody, Divider, Button, Chip } from "@heroui/react";
+import { isSurveyOpen } from '../utils/surveyUtils';
 import RadioQuestion from '../components/questions/RadioQuestion';
 import TrueFalseQuestion from '../components/questions/TrueFalseQuestion';
 import RankingQuestion from '../components/questions/RankingQuestion';
@@ -66,8 +66,22 @@ export default function TakeSurvey() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Loading survey...</div>;
-  if (error && !survey) return <div className="p-8 text-danger">{error}</div>;
+  if (loading) return <div className="p-8 text-center text-slate-500">Loading survey...</div>;
+  if (error && !survey) return <div className="p-8 text-danger text-center bg-red-50 rounded-xl m-8">{error}</div>;
+
+  const open = survey ? isSurveyOpen(survey) : false;
+  if (survey && !open) {
+    return (
+      <div className="max-w-xl mx-auto py-12 px-6 text-center space-y-4">
+        <div className="size-16 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
+          <span className="material-symbols-outlined text-4xl">lock_clock</span>
+        </div>
+        <h2 className="text-2xl font-bold">Survey Closed</h2>
+        <p className="text-slate-500">This survey has expired or been closed by the creator. You can no longer submit responses.</p>
+        <Button color="primary" variant="flat" onPress={() => navigate('/browse')}>Back to Browse</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto py-8">

@@ -9,7 +9,6 @@ import TakeSurvey from './pages/TakeSurvey';
 import ResultsDashboard from './pages/ResultsDashboard';
 import ManageClass from './pages/ManageClass';
 import Dashboard from './pages/Dashboard';
-import Admin from './pages/Admin';
 import MainLayout from './components/MainLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -83,14 +82,7 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/admin" 
-              element={
-                <ProtectedRoute>
-                  <Admin />
-                </ProtectedRoute>
-              } 
-            />
+
             </Routes>
           </ErrorBoundary>
         </Router>

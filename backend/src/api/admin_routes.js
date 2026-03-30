@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const Class = require('../models/class');
 const Activity = require('../models/activity');
+const { getSurveyCompletion } = require('../services/results_service');
+const db = require('../db/connection');
 const { isAuthenticated, isAdmin } = require('./auth');
 
 router.use(isAuthenticated);
@@ -338,15 +340,89 @@ router.post('/users/import', async (req, res) => {
   }
 });
 
-// Get recent activities
-router.get('/activities', (req, res) => {
+// Stats for dashboard cards
+router.get('/stats', (req, res) => {
   try {
-    const { limit = 10, offset = 0 } = req.query;
-    const activities = Activity.getRecent(parseInt(limit, 10), parseInt(offset, 10));
-    res.json(activities);
+    const userStats = db.prepare(`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN role = 'student' THEN 1 END) as students,
+        COUNT(CASE WHEN role = 'teacher' THEN 1 END) as teachers
+      FROM users
+    `).get();
+
+    const surveyStats = db.prepare(`
+      SELECT COUNT(*) as count FROM surveys
+    `).get();
+
+    const responseStats = db.prepare(`
+      SELECT COUNT(*) as count FROM responses
+    `).get();
+
+    // Activities in last 24h for "Pending" or "Recent" vibe
+    const recentActivity = db.prepare(`
+      SELECT COUNT(*) as count FROM activities WHERE timestamp > datetime('now', '-24 hours')
+    `).get();
+
+    res.json({
+      users: userStats.total,
+      students: userStats.students,
+      teachers: userStats.teachers,
+      surveys: surveyStats.count,
+      responses: responseStats.count,
+      recentActivity: recentActivity.count
+    });
   } catch (err) {
-    console.error('Admin list activities:', err);
-    res.status(500).json({ error: 'Failed to list activities' });
+    console.error('Admin stats:', err);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Comprehensive dashboard data (stats + recent activity + survey status)
+router.get('/dashboard-data', (req, res) => {
+  try {
+    // 1. Basic Stats
+    const stats = db.prepare(`
+      SELECT 
+        (SELECT COUNT(*) FROM users) as totalUsers,
+        (SELECT COUNT(*) FROM surveys) as totalSurveys,
+        (SELECT COUNT(*) FROM responses) as totalResponses
+    `).get();
+
+    // 2. Recent Activity
+    const activities = Activity.getRecent(10, 0);
+
+    // 3. Survey Status (Top 5 most recent)
+    const recentSurveys = db.prepare(`
+      SELECT id, title, closedAt, opensAt, closesAt, isAnonymous, sharedWithClass, sharedWithYearLevel, sharedWithSchool, targetClassId, creatorId
+      FROM surveys
+      ORDER BY createdAt DESC
+      LIMIT 5
+    `).all();
+
+    const surveyStatusList = recentSurveys.map(s => {
+      const completion = getSurveyCompletion(s.id);
+      const totalExpected = (completion.responded.length + completion.notResponded.length) || 1;
+      const percent = Math.round((completion.responded.length / totalExpected) * 100);
+      
+      return {
+        id: s.id,
+        title: s.title,
+        closedAt: s.closedAt,
+        completionRate: percent,
+        responseCount: completion.responded.length,
+        expectedCount: totalExpected
+      };
+    });
+
+    res.json({
+      stats,
+      activities,
+      surveyStatusList
+    });
+  } catch (err) {
+    console.error('Admin dashboard data:', err);
+    res.status(500).json({ error: 'Failed to fetch dashboard data' });
   }
 });
 
