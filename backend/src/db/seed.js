@@ -10,8 +10,10 @@ async function seed() {
   db.prepare('PRAGMA foreign_keys = OFF').run();
   db.exec('DELETE FROM survey_answers');
   db.exec('DELETE FROM responses');
+  db.exec('DELETE FROM survey_targets');
   db.exec('DELETE FROM questions');
   db.exec('DELETE FROM surveys');
+  db.exec('DELETE FROM activities');
   db.exec('DELETE FROM distribution_permissions');
   db.exec('DELETE FROM users');
   db.exec('DELETE FROM classes');

@@ -15,7 +15,7 @@ export default {
         "background-dark": "#101622",
       },
       fontFamily: {
-        display: ["Inter", "system-ui", "sans-serif"],
+        display: ["Inter Variable", "Inter", "system-ui", "sans-serif"],
       },
     },
   },

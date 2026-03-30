@@ -2,6 +2,16 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
+import SignOutButton from "../components/SignOutButton";
+
+/** Survey is open for responses: not manually closed, within opensAt/closesAt window. */
+function isSurveyOpen(s) {
+  const now = new Date();
+  if (s.closedAt) return false;
+  if (s.opensAt && new Date(s.opensAt) > now) return false;
+  if (s.closesAt && new Date(s.closesAt) < now) return false;
+  return true;
+}
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
@@ -35,7 +45,7 @@ export default function TeacherDashboard() {
   }, [user?.id]);
 
   const mySurveys = surveys;
-  const activeSurveys = mySurveys.filter((s) => !s.closesAt && !s.closedAt);
+  const activeSurveys = mySurveys.filter(isSurveyOpen);
   const totalStudents = classes.reduce((sum, c) => sum + (c.studentCount || 0), 0);
 
   const surveysWithCompletion = mySurveys.filter(s => s.completion?.total > 0);
@@ -112,7 +122,7 @@ export default function TeacherDashboard() {
             <span className="text-sm">Settings</span>
           </button>
         </nav>
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
           <button
             type="button"
             onClick={handleCreateSurvey}
@@ -121,6 +131,7 @@ export default function TeacherDashboard() {
             <span className="material-symbols-outlined text-sm">add</span>
             Create New Survey
           </button>
+          <SignOutButton />
         </div>
       </aside>
 
@@ -282,7 +293,7 @@ export default function TeacherDashboard() {
                         </tr>
                       ) : (
                         mySurveys.slice(0, 5).map((s) => {
-                          const isOpen = !s.closesAt && !s.closedAt;
+                          const isOpen = isSurveyOpen(s);
                           const completion = s.completion != null ? Math.round((s.completion.responded / Math.max(1, s.completion.total)) * 100) : null;
                           return (
                             <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">

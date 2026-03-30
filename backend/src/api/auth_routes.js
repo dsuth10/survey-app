@@ -6,7 +6,10 @@ const User = require('../models/user');
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 login requests per window
+  max: 150, // per username (not IP) — school NAT shares one IP for many students
+  keyGenerator: (req) => {
+    return (req.body?.username || req.ip || '').toLowerCase();
+  },
   message: { error: 'Too many login attempts, please try again after 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
