@@ -1,0 +1,145 @@
+- generic [ref=e271]:
+  - complementary [ref=e272]:
+    - generic [ref=e273]:
+      - generic [ref=e275]: grid_view
+      - heading "Survey App" [level=2] [ref=e276]
+    - navigation [ref=e277]:
+      - generic [ref=e278]: Main Menu
+      - button "dashboard Dashboard" [ref=e279] [cursor=pointer]:
+        - generic [ref=e280]: dashboard
+        - generic [ref=e281]: Dashboard
+      - button "school My Classes" [ref=e282] [cursor=pointer]:
+        - generic [ref=e283]: school
+        - generic [ref=e284]: My Classes
+      - button "edit_note Survey Builder" [ref=e285] [cursor=pointer]:
+        - generic [ref=e286]: edit_note
+        - generic [ref=e287]: Survey Builder
+      - button "analytics Results & Analytics" [ref=e288] [cursor=pointer]:
+        - generic [ref=e289]: analytics
+        - generic [ref=e290]: Results & Analytics
+      - generic [ref=e291]: Support
+      - button "library_books Resources" [ref=e292] [cursor=pointer]:
+        - generic [ref=e293]: library_books
+        - generic [ref=e294]: Resources
+      - button "settings Settings" [ref=e295] [cursor=pointer]:
+        - generic [ref=e296]: settings
+        - generic [ref=e297]: Settings
+    - generic [ref=e298]:
+      - button "add Create New Survey" [ref=e299] [cursor=pointer]:
+        - generic [ref=e300]: add
+        - text: Create New Survey
+      - button "logout Sign Out" [ref=e301] [cursor=pointer]:
+        - generic [ref=e302]: logout
+        - generic [ref=e303]: Sign Out
+  - main [ref=e304]:
+    - generic [ref=e305]:
+      - generic [ref=e307]:
+        - generic [ref=e308]: search
+        - textbox "Search students, surveys..." [ref=e309]
+      - generic [ref=e310]:
+        - button "notifications" [ref=e311] [cursor=pointer]:
+          - generic [ref=e312]: notifications
+        - generic [ref=e314]:
+          - generic [ref=e315]:
+            - paragraph [ref=e316]: Mr. Smith
+            - paragraph [ref=e317]: Teacher
+          - generic [ref=e318]: M
+    - generic [ref=e319]:
+      - generic [ref=e320]:
+        - generic [ref=e321]:
+          - heading "Welcome back, Mr." [level=1] [ref=e322]
+          - paragraph [ref=e323]: Here's a snapshot of your classes and recent survey activity.
+        - button "group View Class Roster" [ref=e325] [cursor=pointer]:
+          - generic [ref=e326]: group
+          - text: View Class Roster
+      - generic [ref=e327]:
+        - generic [ref=e328]:
+          - generic [ref=e329]:
+            - generic [ref=e331]: groups
+            - generic [ref=e332]: —
+          - paragraph [ref=e333]: Total Students
+          - heading "1" [level=3] [ref=e334]
+        - generic [ref=e335]:
+          - generic [ref=e336]:
+            - generic [ref=e338]: assignment
+            - generic [ref=e339]: —
+          - paragraph [ref=e340]: Active Surveys
+          - heading "2" [level=3] [ref=e341]
+        - generic [ref=e342]:
+          - generic [ref=e343]:
+            - generic [ref=e345]: check_circle
+            - generic [ref=e346]: —
+          - paragraph [ref=e347]: Completion Rate
+          - heading "—" [level=3] [ref=e348]
+        - generic [ref=e349]:
+          - generic [ref=e350]:
+            - generic [ref=e352]: rate_review
+            - generic [ref=e353]: —
+          - paragraph [ref=e354]: Recent Submissions
+          - heading "1" [level=3] [ref=e355]
+      - generic [ref=e356]:
+        - generic [ref=e357]:
+          - generic [ref=e358]:
+            - generic [ref=e359]:
+              - heading "My Classes" [level=2] [ref=e360]
+              - button "See All Classes" [ref=e361] [cursor=pointer]
+            - generic [ref=e363]:
+              - generic [ref=e364]:
+                - generic [ref=e365]:
+                  - heading "7A" [level=4] [ref=e366]
+                  - paragraph [ref=e367]: "Class ID: 1"
+                - generic [ref=e368]: Class
+              - paragraph [ref=e369]: 1 students enrolled
+              - generic [ref=e370]:
+                - button "Manage Roster" [ref=e371] [cursor=pointer]
+                - button "View All" [ref=e372] [cursor=pointer]
+          - generic [ref=e373]:
+            - generic [ref=e374]:
+              - heading "Recent Surveys" [level=2] [ref=e375]
+              - generic [ref=e376]: No student-created surveys in this view
+            - table [ref=e378]:
+              - rowgroup [ref=e379]:
+                - row "Survey Title Status Responses Action" [ref=e380]:
+                  - columnheader "Survey Title" [ref=e381]
+                  - columnheader "Status" [ref=e382]
+                  - columnheader "Responses" [ref=e383]
+                  - columnheader "Action" [ref=e384]
+              - rowgroup [ref=e385]:
+                - row "dytirtf 3/30/2026 Open — View Results" [ref=e386]:
+                  - cell "dytirtf 3/30/2026" [ref=e387]:
+                    - generic [ref=e388]:
+                      - generic [ref=e389]: dytirtf
+                      - generic [ref=e390]: 3/30/2026
+                  - cell "Open" [ref=e391]
+                  - cell "—" [ref=e392]
+                  - cell "View Results" [ref=e393]:
+                    - button "View Results" [ref=e395] [cursor=pointer]
+                - row "dfgdfg 3/30/2026 Open — View Results" [ref=e396]:
+                  - cell "dfgdfg 3/30/2026" [ref=e397]:
+                    - generic [ref=e398]:
+                      - generic [ref=e399]: dfgdfg
+                      - generic [ref=e400]: 3/30/2026
+                  - cell "Open" [ref=e401]
+                  - cell "—" [ref=e402]
+                  - cell "View Results" [ref=e403]:
+                    - button "View Results" [ref=e405] [cursor=pointer]
+        - generic [ref=e406]:
+          - generic [ref=e407]:
+            - generic [ref=e408]:
+              - heading "Student Activity" [level=2] [ref=e409]
+              - button "refresh" [ref=e410] [cursor=pointer]:
+                - generic [ref=e411]: refresh
+            - generic [ref=e412]:
+              - generic [ref=e414]:
+                - generic [ref=e416]: task_alt
+                - generic [ref=e417]:
+                  - paragraph [ref=e418]: John Doe
+                  - paragraph [ref=e419]: responded to dytirtf
+                  - paragraph [ref=e420]: 3/30/2026, 7:17:02 AM
+              - button "View All Activity History" [ref=e421] [cursor=pointer]
+          - generic [ref=e422]:
+            - heading "lightbulb Did you know?" [level=4] [ref=e423]:
+              - generic [ref=e424]: lightbulb
+              - text: Did you know?
+            - paragraph [ref=e425]: Surveys with 5 questions or fewer have an 85% higher completion rate among senior high students.
+            - button "Learn more" [ref=e426] [cursor=pointer]

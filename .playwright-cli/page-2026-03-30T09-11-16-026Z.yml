@@ -1,0 +1,119 @@
+- generic [ref=e447]:
+  - complementary [ref=e448]:
+    - generic [ref=e449]:
+      - generic [ref=e451]: insights
+      - heading "Survey App" [level=1] [ref=e452]
+    - navigation [ref=e453]:
+      - button "dashboard Dashboard" [ref=e454] [cursor=pointer]:
+        - generic [ref=e455]: dashboard
+        - generic [ref=e456]: Dashboard
+      - button "description My Surveys" [ref=e457] [cursor=pointer]:
+        - generic [ref=e458]: description
+        - generic [ref=e459]: My Surveys
+      - button "bar_chart Results" [ref=e460] [cursor=pointer]:
+        - generic [ref=e461]: bar_chart
+        - generic [ref=e462]: Results
+    - button "add Create New Survey" [ref=e464] [cursor=pointer]:
+      - generic [ref=e465]: add
+      - text: Create New Survey
+    - generic [ref=e467]:
+      - paragraph [ref=e468]: Support
+      - button "help_center Help Center" [ref=e469] [cursor=pointer]:
+        - generic [ref=e470]: help_center
+        - generic [ref=e471]: Help Center
+      - button "logout Sign Out" [ref=e472] [cursor=pointer]:
+        - generic [ref=e473]: logout
+        - generic [ref=e474]: Sign Out
+  - main [ref=e475]:
+    - generic [ref=e476]:
+      - generic [ref=e477]:
+        - generic [ref=e478]: search
+        - textbox "Search surveys, results..." [ref=e479]
+      - generic [ref=e480]:
+        - button "notifications" [ref=e481] [cursor=pointer]:
+          - generic [ref=e482]: notifications
+        - generic [ref=e484] [cursor=pointer]:
+          - generic [ref=e485]:
+            - paragraph [ref=e486]: John Doe
+            - paragraph [ref=e487]: "Student ID: 3"
+          - generic [ref=e488]: J
+    - generic [ref=e489]:
+      - generic [ref=e490]:
+        - generic [ref=e491]:
+          - heading "Hello, John!" [level=2] [ref=e492]
+          - paragraph [ref=e493]: You have 0 surveys waiting for your feedback today.
+        - generic [ref=e494]:
+          - generic [ref=e495]: stars
+          - generic [ref=e496]:
+            - paragraph [ref=e497]: Your Rank
+            - paragraph [ref=e498]: Participant
+      - generic [ref=e499]:
+        - generic [ref=e500]:
+          - paragraph [ref=e501]: Total Completed
+          - generic [ref=e502]:
+            - generic [ref=e503]: "1"
+            - generic [ref=e504]:
+              - generic [ref=e505]: trending_up
+              - text: —
+        - generic [ref=e506]:
+          - paragraph [ref=e507]: Pending Surveys
+          - generic [ref=e508]:
+            - generic [ref=e509]: "0"
+            - generic [ref=e510]: Active tasks
+        - generic [ref=e511]:
+          - paragraph [ref=e512]: Response Rate
+          - generic [ref=e513]:
+            - generic [ref=e514]: 100%
+            - generic [ref=e515]: of assigned
+        - generic [ref=e516]:
+          - paragraph [ref=e517]: My Surveys
+          - generic [ref=e518]:
+            - generic [ref=e519]: "1"
+            - generic [ref=e520]: edit_document
+      - generic [ref=e521]:
+        - generic [ref=e522]:
+          - heading "Assigned to Me" [level=3] [ref=e523]
+          - button "View all tasks" [ref=e524] [cursor=pointer]
+        - paragraph [ref=e526]: No pending surveys. Check "View all tasks" for more.
+      - generic [ref=e527]:
+        - heading "My Created Surveys" [level=3] [ref=e529]
+        - generic [ref=e532]:
+          - generic [ref=e533]:
+            - heading "dfgdfg" [level=4] [ref=e534]
+            - generic [ref=e535]: Author
+          - generic [ref=e536]:
+            - generic [ref=e537]:
+              - generic [ref=e538]: event
+              - generic [ref=e539]: Created 3/30/2026
+            - generic [ref=e540]:
+              - generic [ref=e541]: groups
+              - generic [ref=e542]: Class
+          - button "View Results" [ref=e543] [cursor=pointer]
+          - generic [ref=e578]:
+            - button "Delete" [ref=e579] [cursor=pointer]
+            - button "Cancel" [ref=e580] [cursor=pointer]
+      - generic [ref=e545]:
+        - generic [ref=e546]:
+          - heading "Recent Activity" [level=3] [ref=e547]
+          - generic [ref=e550]:
+            - generic [ref=e551]:
+              - generic [ref=e553]: check_circle
+              - generic [ref=e554]:
+                - paragraph [ref=e555]: dytirtf
+                - paragraph [ref=e556]: Completed
+            - button "View surveys" [ref=e557] [cursor=pointer]:
+              - generic [ref=e558]: chevron_right
+        - generic [ref=e559]:
+          - heading "Your Progress" [level=3] [ref=e560]
+          - generic [ref=e561]:
+            - generic [ref=e563]: insights
+            - paragraph [ref=e564]: Current Goal
+            - heading "Weekly Challenge" [level=4] [ref=e565]
+            - paragraph [ref=e566]: Complete surveys to track your progress
+            - generic [ref=e570]: 1 completed
+            - button "View Milestones" [ref=e571] [cursor=pointer]
+          - generic [ref=e572]:
+            - generic [ref=e574]: emoji_events
+            - generic [ref=e575]:
+              - paragraph [ref=e576]: Redeem Points
+              - paragraph [ref=e577]: Complete more surveys to earn rewards

@@ -1,0 +1,9 @@
+- generic [ref=e428]:
+  - generic [ref=e429]:
+    - heading "Survey App" [level=2] [ref=e430]
+    - paragraph [ref=e431]: Welcome back, please sign in
+  - generic [ref=e433]:
+    - textbox "Username" [ref=e438]
+    - textbox "Password" [ref=e443]
+    - button "Sign In" [ref=e444] [cursor=pointer]
+  - paragraph [ref=e446]: Educational Feedback Platform

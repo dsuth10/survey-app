@@ -18,7 +18,7 @@ function getVisibleSurveys(user) {
 
   if (user.role === 'teacher' || user.role === 'admin') {
     return db.prepare(`
-      SELECT s.*, u.displayName as creatorName 
+      SELECT s.*, u.displayName as creatorName, u.role as creatorRole
       FROM surveys s
       JOIN users u ON s.creatorId = u.id
       ORDER BY s.createdAt DESC
@@ -32,19 +32,25 @@ function getVisibleSurveys(user) {
   // 4. Year-wide surveys (if they match the creator's year level)
 
   return db.prepare(`
-    SELECT DISTINCT s.*, u.displayName as creatorName
+    SELECT DISTINCT s.*, u.displayName as creatorName, u.role as creatorRole
     FROM surveys s
     JOIN users u ON s.creatorId = u.id
     LEFT JOIN survey_targets st ON st.surveyId = s.id AND st.userId = ?
-    WHERE (${openCondition})
-      AND (s.creatorId = ?
-       OR s.sharedWithSchool = 1
-       OR (s.sharedWithClass = 1 AND (
-            (s.targetClassId IS NOT NULL AND s.targetClassId = ?)
-            OR (s.targetClassId IS NULL AND u.classId = ? AND u.classId IS NOT NULL)
-          ))
-       OR (s.sharedWithYearLevel = 1 AND u.yearLevel = ? AND u.yearLevel IS NOT NULL)
-       OR st.userId IS NOT NULL)
+    WHERE (
+      s.creatorId = ?
+      OR (
+        (${openCondition})
+        AND (
+          s.sharedWithSchool = 1
+          OR (s.sharedWithClass = 1 AND (
+                (s.targetClassId IS NOT NULL AND s.targetClassId = ?)
+                OR (s.targetClassId IS NULL AND u.classId = ? AND u.classId IS NOT NULL)
+              ))
+          OR (s.sharedWithYearLevel = 1 AND u.yearLevel = ? AND u.yearLevel IS NOT NULL)
+          OR st.userId IS NOT NULL
+        )
+      )
+    )
     ORDER BY s.createdAt DESC
   `).all(user.id, user.id, user.classId, user.classId, user.yearLevel);
 }

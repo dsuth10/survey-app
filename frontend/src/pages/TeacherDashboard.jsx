@@ -21,6 +21,9 @@ export default function TeacherDashboard() {
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deletingSurveyId, setDeletingSurveyId] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -33,7 +36,7 @@ export default function TeacherDashboard() {
         ]);
         setClasses(Array.isArray(classesRes.data) ? classesRes.data : []);
         const surveyList = Array.isArray(surveysRes.data) ? surveysRes.data : [];
-        setSurveys(surveyList.filter((s) => s.creatorId === user?.id));
+        setSurveys(surveyList);
         setRecentActivity(statsRes.data.recentActivity || []);
       } catch (err) {
         console.error("Failed to load teacher data", err);
@@ -45,6 +48,7 @@ export default function TeacherDashboard() {
   }, [user?.id]);
 
   const mySurveys = surveys;
+  const deletableSurveyCount = mySurveys.filter((s) => s.creatorRole === "student").length;
   const activeSurveys = mySurveys.filter(isSurveyOpen);
   const totalStudents = classes.reduce((sum, c) => sum + (c.studentCount || 0), 0);
 
@@ -60,6 +64,20 @@ export default function TeacherDashboard() {
   const handleManageClass = () => navigate("/manage-class");
   const handleSeeAllClasses = () => navigate("/manage-class");
   const handleBrowse = () => navigate("/browse");
+
+  const handleDeleteSurvey = async (surveyId) => {
+    try {
+      setDeletingSurveyId(surveyId);
+      await axios.delete(`/api/surveys/${surveyId}`);
+      setSurveys((prev) => prev.filter((s) => s.id !== surveyId));
+      setMessage({ type: "success", text: "Survey deleted." });
+    } catch (err) {
+      setMessage({ type: "error", text: err.response?.data?.error || "Failed to delete survey." });
+    } finally {
+      setDeletingSurveyId(null);
+      setConfirmDeleteId(null);
+    }
+  };
 
   const displayName = user?.displayName || user?.username || "Teacher";
   const firstName = displayName.split(/\s+/)[0] || displayName;
@@ -166,6 +184,11 @@ export default function TeacherDashboard() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-8">
+          {message.text && (
+            <div className={`mb-4 rounded-lg px-4 py-3 text-sm ${message.type === "success" ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200" : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200"}`}>
+              {message.text}
+            </div>
+          )}
           <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
             <div>
               <h1 className="text-3xl font-black tracking-tight mb-1 text-slate-900 dark:text-white">Welcome back, {firstName}</h1>
@@ -268,9 +291,9 @@ export default function TeacherDashboard() {
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold">Recent Surveys</h2>
-                  <button type="button" className="text-slate-500 hover:text-slate-900 dark:hover:text-white p-1">
-                    <span className="material-symbols-outlined">more_horiz</span>
-                  </button>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {deletableSurveyCount > 0 ? `${deletableSurveyCount} student survey${deletableSurveyCount === 1 ? "" : "s"} can be deleted` : "No student-created surveys in this view"}
+                  </span>
                 </div>
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
                   <table className="w-full text-left border-collapse">
@@ -324,9 +347,48 @@ export default function TeacherDashboard() {
                                 )}
                               </td>
                               <td className="px-6 py-4 text-right">
-                                <button type="button" onClick={() => handleViewResults(s.id)} className="text-xs font-bold text-primary hover:underline">
-                                  View Results
-                                </button>
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleViewResults(s.id)}
+                                    className="text-xs font-bold text-primary hover:underline"
+                                  >
+                                    View Results
+                                  </button>
+
+                                  {s.creatorRole === "student" && (
+                                    confirmDeleteId === s.id ? (
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteSurvey(s.id)}
+                                          disabled={deletingSurveyId === s.id}
+                                          className="px-2 py-1 rounded-lg text-[11px] font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 disabled:hover:bg-red-600 transition-colors"
+                                        >
+                                          {deletingSurveyId === s.id ? "Deleting..." : "Yes"}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setConfirmDeleteId(null)}
+                                          disabled={deletingSurveyId === s.id}
+                                          className="px-2 py-1 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 transition-colors"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => setConfirmDeleteId(s.id)}
+                                        disabled={deletingSurveyId != null}
+                                        className="px-2 py-1 rounded-lg text-[11px] font-bold border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
+                                        title="Delete"
+                                      >
+                                        Delete
+                                      </button>
+                                    )
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           );

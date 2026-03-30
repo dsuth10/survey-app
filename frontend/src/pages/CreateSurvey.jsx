@@ -44,7 +44,7 @@ export default function CreateSurvey() {
     targetUserIds: [],
   });
   const [targetClassId, setTargetClassId] = useState("");
-  const [opensAt, setOpensAt] = useState(getLocalIsoString());
+  const [opensAt, setOpensAt] = useState("");
   const [closesAt, setClosesAt] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");

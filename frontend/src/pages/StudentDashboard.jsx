@@ -19,6 +19,9 @@ export default function StudentDashboard() {
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deletingSurveyId, setDeletingSurveyId] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -51,6 +54,20 @@ export default function StudentDashboard() {
   const handleTakeSurvey = (id) => navigate(`/take-survey/${id}`);
   const handleViewResults = (id) => navigate(`/results/${id}`);
   const handleViewAll = () => navigate("/browse");
+
+  const handleDeleteSurvey = async (surveyId) => {
+    try {
+      setDeletingSurveyId(surveyId);
+      await axios.delete(`/api/surveys/${surveyId}`);
+      setSurveys((prev) => prev.filter((s) => s.id !== surveyId));
+      setMessage({ type: "success", text: "Survey deleted." });
+    } catch (err) {
+      setMessage({ type: "error", text: err.response?.data?.error || "Failed to delete survey." });
+    } finally {
+      setDeletingSurveyId(null);
+      setConfirmDeleteId(null);
+    }
+  };
 
   const formatDue = (survey) => {
     if (!survey.closesAt) return "No due date";
@@ -141,6 +158,11 @@ export default function StudentDashboard() {
         </header>
 
         <div className="p-8 max-w-7xl mx-auto space-y-8">
+          {message.text && (
+            <div className={`rounded-lg px-4 py-3 text-sm ${message.type === "success" ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200" : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200"}`}>
+              {message.text}
+            </div>
+          )}
           <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h2 className="text-3xl font-bold tracking-tight">Hello, {firstName}!</h2>
@@ -277,6 +299,36 @@ export default function StudentDashboard() {
                       >
                         View Results
                       </button>
+
+                      {confirmDeleteId === s.id ? (
+                        <div className="w-full mt-3 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSurvey(s.id)}
+                            disabled={deletingSurveyId === s.id}
+                            className="flex-1 px-3 py-2 rounded-lg text-[12px] font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 disabled:hover:bg-red-600 transition-colors"
+                          >
+                            {deletingSurveyId === s.id ? "Deleting..." : "Delete"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(null)}
+                            disabled={deletingSurveyId === s.id}
+                            className="flex-1 px-3 py-2 rounded-lg text-[12px] font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(s.id)}
+                          disabled={deletingSurveyId != null}
+                          className="w-full mt-3 border border-red-200 text-red-600 py-2.5 rounded-lg font-bold text-sm hover:bg-red-50 transition-all disabled:opacity-60 disabled:hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

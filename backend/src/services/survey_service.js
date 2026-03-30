@@ -1,8 +1,16 @@
 const { Survey, Question, SurveyTarget } = require('../models/survey');
 const Class = require('../models/class');
+const User = require('../models/user');
 const db = require('../db/connection');
 
 const VALID_QUESTION_TYPES = ['multipleChoice', 'trueFalse', 'ranking', 'text'];
+
+function toUtcIso(localDatetimeStr) {
+  if (!localDatetimeStr) return null;
+  const d = new Date(localDatetimeStr);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
 
 function validateQuestion(q, index) {
   const type = q.type || 'multipleChoice';
@@ -72,6 +80,9 @@ async function createSurvey(user, surveyData) {
   const targetUserIds = Array.isArray(surveyData.targetUserIds) ? surveyData.targetUserIds.map((id) => parseInt(id, 10)).filter((n) => !Number.isNaN(n)) : [];
   const sharedWithIndividuals = targetUserIds.length > 0;
 
+  const opensAtUtc = toUtcIso(surveyData.opensAt);
+  const closesAtUtc = toUtcIso(surveyData.closesAt);
+
   const surveyId = Survey.create({
     creatorId: user.id,
     title: String(surveyData.title).trim(),
@@ -80,8 +91,8 @@ async function createSurvey(user, surveyData) {
     sharedWithClass: !!surveyData.sharedWithClass,
     sharedWithYearLevel: !!surveyData.sharedWithYearLevel,
     sharedWithSchool: !!surveyData.sharedWithSchool,
-    opensAt: surveyData.opensAt || null,
-    closesAt: surveyData.closesAt || null,
+    opensAt: opensAtUtc,
+    closesAt: closesAtUtc,
     targetClassId: surveyData.targetClassId || null,
     sharedWithIndividuals
   });
@@ -129,6 +140,9 @@ async function updateSurvey(user, surveyId, surveyData) {
     : [];
   const sharedWithIndividuals = targetUserIds.length > 0;
 
+  const opensAtUtc = toUtcIso(surveyData.opensAt);
+  const closesAtUtc = toUtcIso(surveyData.closesAt);
+
   Survey.update(surveyId, {
     title: String(surveyData.title).trim(),
     description: surveyData.description || '',
@@ -136,8 +150,8 @@ async function updateSurvey(user, surveyId, surveyData) {
     sharedWithClass: !!surveyData.sharedWithClass,
     sharedWithYearLevel: !!surveyData.sharedWithYearLevel,
     sharedWithSchool: !!surveyData.sharedWithSchool,
-    opensAt: surveyData.opensAt || null,
-    closesAt: surveyData.closesAt || null,
+    opensAt: opensAtUtc,
+    closesAt: closesAtUtc,
     targetClassId: surveyData.targetClassId || null,
     sharedWithIndividuals
   });
@@ -147,9 +161,69 @@ async function updateSurvey(user, surveyId, surveyData) {
   return surveyId;
 }
 
+async function deleteSurvey(user, surveyId) {
+  const id = parseInt(surveyId, 10);
+  if (Number.isNaN(id)) {
+    const err = new Error('Survey not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const survey = Survey.findById(id);
+  if (!survey) {
+    const err = new Error('Survey not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (user.role === 'admin') {
+    Survey.delete(id);
+    return id;
+  }
+
+  if (user.role === 'teacher') {
+    const creator = User.findById(survey.creatorId);
+    if (!creator || creator.role !== 'student') {
+      const err = new Error('Not authorized to delete this survey');
+      err.statusCode = 403;
+      throw err;
+    }
+    if (!creator.classId) {
+      const err = new Error('Not authorized to delete this survey');
+      err.statusCode = 403;
+      throw err;
+    }
+    const classes = Class.findByTeacherId(user.id);
+    const classIds = new Set(classes.map((c) => c.id));
+    if (!classIds.has(creator.classId)) {
+      const err = new Error('Not authorized to delete this survey');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    Survey.delete(id);
+    return id;
+  }
+
+  if (user.role === 'student') {
+    if (survey.creatorId !== user.id) {
+      const err = new Error('Not authorized to delete this survey');
+      err.statusCode = 403;
+      throw err;
+    }
+    Survey.delete(id);
+    return id;
+  }
+
+  const err = new Error('Not authorized to delete this survey');
+  err.statusCode = 403;
+  throw err;
+}
+
 module.exports = {
   createSurvey,
   updateSurvey,
+  deleteSurvey,
   validateDistribution,
   validateQuestion,
   VALID_QUESTION_TYPES

@@ -5,14 +5,15 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 150, // per username (not IP) — school NAT shares one IP for many students
+  windowMs: 15 * 60 * 1000,
+  max: 150,
   keyGenerator: (req) => {
-    return (req.body?.username || req.ip || '').toLowerCase();
+    return (req.body?.username || 'unknown').toLowerCase();
   },
   message: { error: 'Too many login attempts, please try again after 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 
 router.post('/login', loginLimiter, async (req, res) => {

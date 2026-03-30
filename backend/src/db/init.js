@@ -4,6 +4,18 @@ const fs = require('fs');
 
 const dbPath = path.resolve(__dirname, '../../../survey.db');
 
+function normalizeLegacyLocalDatetime(value) {
+  if (!value || typeof value !== 'string') return null;
+  // Skip values that already include timezone info.
+  if (value.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(value)) return null;
+  // Legacy values were saved like "YYYY-MM-DDTHH:mm" in local time.
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) return null;
+
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt.toISOString();
+}
+
 function initDb() {
   const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
@@ -179,6 +191,29 @@ function initDb() {
     db.exec('CREATE INDEX IF NOT EXISTS idx_users_classId ON users(classId)');
     db.exec('PRAGMA foreign_keys = ON');
   }
+
+  // Migration: convert legacy local-time survey schedule strings to UTC ISO.
+  const scheduleRows = db
+    .prepare(
+      'SELECT id, opensAt, closesAt FROM surveys WHERE opensAt IS NOT NULL OR closesAt IS NOT NULL'
+    )
+    .all();
+  const updateSchedule = db.prepare(
+    'UPDATE surveys SET opensAt = ?, closesAt = ? WHERE id = ?'
+  );
+  const normalizeSchedules = db.transaction((rows) => {
+    for (const row of rows) {
+      const normalizedOpensAt = normalizeLegacyLocalDatetime(row.opensAt);
+      const normalizedClosesAt = normalizeLegacyLocalDatetime(row.closesAt);
+      if (!normalizedOpensAt && !normalizedClosesAt) continue;
+      updateSchedule.run(
+        normalizedOpensAt || row.opensAt || null,
+        normalizedClosesAt || row.closesAt || null,
+        row.id
+      );
+    }
+  });
+  normalizeSchedules(scheduleRows);
 
   console.log('Database initialized at:', dbPath);
   return db;

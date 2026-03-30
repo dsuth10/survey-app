@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createSurvey, updateSurvey } = require('../services/survey_service');
+const { createSurvey, updateSurvey, deleteSurvey } = require('../services/survey_service');
 const { getVisibleSurveys } = require('../services/visibility_service');
 const { getSurveyResults, getSurveyResultsCsv, getSurveyCompletion, getMyResponse } = require('../services/results_service');
 const { Response, SurveyAnswer } = require('../models/response');
@@ -271,6 +271,25 @@ router.put('/:id', isAuthenticated, async (req, res) => {
     await updateSurvey(user, surveyId, req.body);
     Activity.log(req.session.userId, 'survey_updated', 'survey', surveyId, { title: req.body.title });
     res.json({ id: surveyId, message: 'Survey updated successfully' });
+  } catch (error) {
+    const status = Number.isInteger(error.statusCode) ? error.statusCode : 400;
+    res.status(status).json({ error: error.message });
+  }
+});
+
+router.delete('/:id', isAuthenticated, async (req, res) => {
+  try {
+    const user = {
+      id: req.session.userId,
+      role: req.session.role,
+      classId: req.session.classId,
+      yearLevel: req.session.yearLevel
+    };
+
+    const surveyId = parseInt(req.params.id, 10);
+    const deletedId = await deleteSurvey(user, surveyId);
+    Activity.log(req.session.userId, 'survey_deleted', 'survey', deletedId);
+    res.json({ id: deletedId, message: 'Survey deleted successfully' });
   } catch (error) {
     const status = Number.isInteger(error.statusCode) ? error.statusCode : 400;
     res.status(status).json({ error: error.message });

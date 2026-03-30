@@ -2,11 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardBody, Button, Skeleton, Chip, Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
+import { useAuth } from '../contexts/AuthContext';
 
 export default function BrowseSurveys() {
+  const { user } = useAuth();
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deletingSurveyId, setDeletingSurveyId] = useState(null);
   const [myResponse, setMyResponse] = useState(null);
   const [myResponseSurveyTitle, setMyResponseSurveyTitle] = useState('');
   const navigate = useNavigate();
@@ -23,6 +28,28 @@ export default function BrowseSurveys() {
       setError('Failed to fetch surveys');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const canDeleteSurvey = (survey) => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    if (user.role === 'teacher') return survey.creatorRole === 'student';
+    if (user.role === 'student') return survey.creatorId === user.id;
+    return false;
+  };
+
+  const handleDeleteSurvey = async (survey) => {
+    try {
+      setDeletingSurveyId(survey.id);
+      await axios.delete(`/api/surveys/${survey.id}`);
+      setSurveys((prev) => prev.filter((s) => s.id !== survey.id));
+      setMessage({ type: 'success', text: `Deleted survey: ${survey.title}` });
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to delete survey' });
+    } finally {
+      setDeletingSurveyId(null);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -43,6 +70,11 @@ export default function BrowseSurveys() {
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-3xl font-bold">Available Surveys</h2>
       </div>
+      {message.text && (
+        <div className={`mb-6 rounded-lg border px-4 py-3 text-sm ${message.type === 'success' ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+          {message.text}
+        </div>
+      )}
 
       {loading ? (
         <div className="grid gap-4">
@@ -110,6 +142,39 @@ export default function BrowseSurveys() {
                           View Results
                         </Button>
                       </>
+                    )}
+                    {canDeleteSurvey(survey) && (
+                      confirmDeleteId === survey.id ? (
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            color="danger"
+                            size="sm"
+                            isDisabled={deletingSurveyId === survey.id}
+                            onPress={() => handleDeleteSurvey(survey)}
+                          >
+                            {deletingSurveyId === survey.id ? 'Deleting...' : 'Confirm Delete'}
+                          </Button>
+                          <Button
+                            color="default"
+                            variant="flat"
+                            size="sm"
+                            isDisabled={deletingSurveyId === survey.id}
+                            onPress={() => setConfirmDeleteId(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          color="danger"
+                          variant="flat"
+                          size="sm"
+                          isDisabled={deletingSurveyId != null}
+                          onPress={() => setConfirmDeleteId(survey.id)}
+                        >
+                          Delete Survey
+                        </Button>
+                      )
                     )}
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import {
   Modal,
   ModalContent,
@@ -85,6 +86,7 @@ function roleBadgeClass(role) {
 
 export default function AdminDashboard() {
   const { user: authUser } = useAuth();
+  const navigate = useNavigate();
   const [section, setSection] = useState("users");
   const [users, setUsers] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
@@ -97,6 +99,8 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState({ type: "", text: "" });
   const [page, setPage] = useState(1);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deletingSurveyId, setDeletingSurveyId] = useState(null);
 
   const addUserModal = useDisclosure();
   const editUserModal = useDisclosure();
@@ -335,6 +339,20 @@ export default function AdminDashboard() {
       setMessage({ type: "success", text: "User deleted" });
     } catch (err) {
       setMessage({ type: "error", text: err.response?.data?.error || "Failed to delete user" });
+    }
+  };
+
+  const handleDeleteSurvey = async (surveyId) => {
+    try {
+      setDeletingSurveyId(surveyId);
+      await axios.delete(`/api/surveys/${surveyId}`);
+      setSurveys((prev) => prev.filter((s) => s.id !== surveyId));
+      setMessage({ type: "success", text: "Survey deleted" });
+    } catch (err) {
+      setMessage({ type: "error", text: err.response?.data?.error || "Failed to delete survey" });
+    } finally {
+      setDeletingSurveyId(null);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -829,7 +847,46 @@ export default function AdminDashboard() {
                         {surveys.slice(0, 20).map((s) => (
                           <li key={s.id} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
                             <span className="font-medium">{s.title}</span>
-                            <span className="text-sm text-slate-500">{s.closedAt ? "Closed" : "Open"}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm text-slate-500">{s.closedAt ? "Closed" : "Open"}</span>
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/results/${s.id}`)}
+                                className="text-sm font-semibold text-primary hover:underline"
+                              >
+                                View
+                              </button>
+                              {confirmDeleteId === s.id ? (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteSurvey(s.id)}
+                                    disabled={deletingSurveyId === s.id}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 disabled:hover:bg-red-600 transition-colors"
+                                  >
+                                    {deletingSurveyId === s.id ? "Deleting..." : "Yes"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteId(null)}
+                                    disabled={deletingSurveyId === s.id}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteId(s.id)}
+                                  disabled={deletingSurveyId != null}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
+                                  title="Delete"
+                                >
+                                  Delete Survey
+                                </button>
+                              )}
+                            </div>
                           </li>
                         ))}
                       </ul>
@@ -904,25 +961,95 @@ export default function AdminDashboard() {
       </main>
 
       {/* Add User Modal */}
-      <Modal isOpen={addUserModal.isOpen} onOpenChange={addUserModal.onOpenChange}>
-        <ModalContent>
+      <Modal
+        isOpen={addUserModal.isOpen}
+        onOpenChange={addUserModal.onOpenChange}
+        scrollBehavior="inside"
+        size="md"
+        placement="center"
+      >
+        <ModalContent
+          classNames={{
+            base: "bg-white dark:bg-slate-900 max-h-[90vh]",
+          }}
+        >
           <ModalHeader>Add user</ModalHeader>
-          <ModalBody>
-            <Input label="Username" value={formUser.username} onValueChange={(v) => setFormUser((p) => ({ ...p, username: v }))} isRequired />
-            <Input label="Password" type="password" value={formUser.password} onValueChange={(v) => setFormUser((p) => ({ ...p, password: v }))} isRequired />
-            <Input label="Display name" value={formUser.displayName} onValueChange={(v) => setFormUser((p) => ({ ...p, displayName: v }))} />
-            <Select label="Role" selectedKeys={[formUser.role]} onSelectionChange={(keys) => setFormUser((p) => ({ ...p, role: Array.from(keys)[0] ?? "student" }))}>
-              {ROLES.map((r) => (
-                <SelectItem key={r}>{r}</SelectItem>
-              ))}
-            </Select>
-            <Select label="Class" placeholder="None" selectedKeys={formUser.classId ? [String(formUser.classId)] : ["none"]} onSelectionChange={(keys) => setFormUser((p) => ({ ...p, classId: Array.from(keys)[0] === "none" ? "" : Array.from(keys)[0] }))}>
-              <SelectItem key="none">None</SelectItem>
-              {classes.map((c) => (
-                <SelectItem key={String(c.id)}>{c.name}</SelectItem>
-              ))}
-            </Select>
-            <Input label="Year level" value={formUser.yearLevel} onValueChange={(v) => setFormUser((p) => ({ ...p, yearLevel: v }))} />
+          <ModalBody classNames={{ base: "overflow-y-auto min-h-0" }}>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Username</span>
+                <input
+                  aria-label="Username"
+                  type="text"
+                  required
+                  value={formUser.username}
+                  onChange={(e) => setFormUser((p) => ({ ...p, username: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</span>
+                <input
+                  aria-label="Password"
+                  type="password"
+                  required
+                  value={formUser.password}
+                  onChange={(e) => setFormUser((p) => ({ ...p, password: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Display name</span>
+                <input
+                  aria-label="Display name"
+                  type="text"
+                  value={formUser.displayName}
+                  onChange={(e) => setFormUser((p) => ({ ...p, displayName: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Role</span>
+                <select
+                  aria-label="Role"
+                  value={formUser.role}
+                  onChange={(e) => setFormUser((p) => ({ ...p, role: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Class</span>
+                <select
+                  aria-label="Class"
+                  value={formUser.classId ? String(formUser.classId) : "none"}
+                  onChange={(e) => setFormUser((p) => ({ ...p, classId: e.target.value === "none" ? "" : e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="none">None</option>
+                  {classes.map((c) => (
+                    <option key={String(c.id)} value={String(c.id)}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Year level</span>
+                <input
+                  aria-label="Year level"
+                  type="text"
+                  value={formUser.yearLevel}
+                  onChange={(e) => setFormUser((p) => ({ ...p, yearLevel: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={addUserModal.onClose}>Cancel</Button>
@@ -932,28 +1059,99 @@ export default function AdminDashboard() {
       </Modal>
 
       {/* Edit User Modal */}
-      <Modal isOpen={editUserModal.isOpen} onOpenChange={editUserModal.onOpenChange}>
-        <ModalContent>
+      <Modal
+        isOpen={editUserModal.isOpen}
+        onOpenChange={editUserModal.onOpenChange}
+        scrollBehavior="inside"
+        size="md"
+        placement="center"
+      >
+        <ModalContent
+          classNames={{
+            base: "bg-white dark:bg-slate-900 max-h-[90vh]",
+          }}
+        >
           <ModalHeader>Edit user</ModalHeader>
-          <ModalBody>
-            <Input label="Username" value={formUser.username} isReadOnly />
-            <Input label="New password (leave blank to keep)" type="password" value={formUser.password} onValueChange={(v) => setFormUser((p) => ({ ...p, password: v }))} />
-            <Input label="Display name" value={formUser.displayName} onValueChange={(v) => setFormUser((p) => ({ ...p, displayName: v }))} />
-            <Select label="Role" selectedKeys={[formUser.role]} onSelectionChange={(keys) => setFormUser((p) => ({ ...p, role: Array.from(keys)[0] ?? "student" }))}>
-              {ROLES.map((r) => (
-                <SelectItem key={r}>{r}</SelectItem>
-              ))}
-            </Select>
-            <Select label="Class" placeholder="None" selectedKeys={formUser.classId ? [String(formUser.classId)] : ["none"]} onSelectionChange={(keys) => setFormUser((p) => ({ ...p, classId: Array.from(keys)[0] === "none" ? "" : Array.from(keys)[0] }))}>
-              <SelectItem key="none">None</SelectItem>
-              {classes.map((c) => (
-                <SelectItem key={String(c.id)}>{c.name}</SelectItem>
-              ))}
-            </Select>
-            <Input label="Year level" value={formUser.yearLevel} onValueChange={(v) => setFormUser((p) => ({ ...p, yearLevel: v }))} />
-            <div className="flex items-center gap-2">
-              <input type="checkbox" id="edit-active" checked={formUser.isActive} onChange={(e) => setFormUser((p) => ({ ...p, isActive: e.target.checked }))} />
-              <label htmlFor="edit-active">Active</label>
+          <ModalBody classNames={{ base: "overflow-y-auto min-h-0" }}>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Username</span>
+                <input
+                  aria-label="Username"
+                  type="text"
+                  readOnly
+                  value={formUser.username}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">New password</span>
+                <input
+                  aria-label="New password"
+                  type="password"
+                  value={formUser.password}
+                  onChange={(e) => setFormUser((p) => ({ ...p, password: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1">Leave blank to keep current password.</p>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Display name</span>
+                <input
+                  aria-label="Display name"
+                  type="text"
+                  value={formUser.displayName}
+                  onChange={(e) => setFormUser((p) => ({ ...p, displayName: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Role</span>
+                <select
+                  aria-label="Role"
+                  value={formUser.role}
+                  onChange={(e) => setFormUser((p) => ({ ...p, role: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Class</span>
+                <select
+                  aria-label="Class"
+                  value={formUser.classId ? String(formUser.classId) : "none"}
+                  onChange={(e) => setFormUser((p) => ({ ...p, classId: e.target.value === "none" ? "" : e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="none">None</option>
+                  {classes.map((c) => (
+                    <option key={String(c.id)} value={String(c.id)}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Year level</span>
+                <input
+                  aria-label="Year level"
+                  type="text"
+                  value={formUser.yearLevel}
+                  onChange={(e) => setFormUser((p) => ({ ...p, yearLevel: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="edit-active" checked={formUser.isActive} onChange={(e) => setFormUser((p) => ({ ...p, isActive: e.target.checked }))} />
+                <label htmlFor="edit-active" className="text-sm text-slate-700 dark:text-slate-300">
+                  Active
+                </label>
+              </div>
             </div>
           </ModalBody>
           <ModalFooter>

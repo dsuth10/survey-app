@@ -79,6 +79,12 @@ const Survey = {
       targetClassId || null,
       id
     );
+  },
+
+  delete: (id) => {
+    // Foreign keys use `ON DELETE CASCADE`, so deleting a survey will remove
+    // related questions/responses/targets automatically.
+    return db.prepare('DELETE FROM surveys WHERE id = ?').run(id);
   }
 };
 
