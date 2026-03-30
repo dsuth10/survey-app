@@ -25,6 +25,15 @@ function getLocalIsoString(date = new Date()) {
   return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
 }
 
+function getDefaultSchedule() {
+  const now = new Date();
+  const oneWeekLater = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
+  return {
+    opensAt: getLocalIsoString(now),
+    closesAt: getLocalIsoString(oneWeekLater),
+  };
+}
+
 export default function CreateSurvey() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -44,8 +53,9 @@ export default function CreateSurvey() {
     targetUserIds: [],
   });
   const [targetClassId, setTargetClassId] = useState("");
-  const [opensAt, setOpensAt] = useState("");
-  const [closesAt, setClosesAt] = useState("");
+  const [{ opensAt: initialOpensAt, closesAt: initialClosesAt }] = useState(getDefaultSchedule);
+  const [opensAt, setOpensAt] = useState(initialOpensAt);
+  const [closesAt, setClosesAt] = useState(initialClosesAt);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);

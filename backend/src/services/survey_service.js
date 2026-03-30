@@ -80,8 +80,12 @@ async function createSurvey(user, surveyData) {
   const targetUserIds = Array.isArray(surveyData.targetUserIds) ? surveyData.targetUserIds.map((id) => parseInt(id, 10)).filter((n) => !Number.isNaN(n)) : [];
   const sharedWithIndividuals = targetUserIds.length > 0;
 
-  const opensAtUtc = toUtcIso(surveyData.opensAt);
-  const closesAtUtc = toUtcIso(surveyData.closesAt);
+  const hasOpensAt = !!surveyData.opensAt;
+  const hasClosesAt = !!surveyData.closesAt;
+  const defaultOpensAt = new Date();
+  const defaultClosesAt = new Date(defaultOpensAt.getTime() + (7 * 24 * 60 * 60 * 1000));
+  const opensAtUtc = !hasOpensAt && !hasClosesAt ? defaultOpensAt.toISOString() : toUtcIso(surveyData.opensAt);
+  const closesAtUtc = !hasOpensAt && !hasClosesAt ? defaultClosesAt.toISOString() : toUtcIso(surveyData.closesAt);
 
   const surveyId = Survey.create({
     creatorId: user.id,
