@@ -34,6 +34,16 @@ function getDefaultSchedule() {
   };
 }
 
+function toDatetimeLocalValue(value, fallback = "") {
+  if (!value) return fallback;
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+    return value;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return fallback;
+  return getLocalIsoString(parsed);
+}
+
 export default function CreateSurvey() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -89,11 +99,11 @@ export default function CreateSurvey() {
       if (Array.isArray(d.questions) && d.questions.length) setQuestions(d.questions);
       if (d.sharing) setSharing(d.sharing);
       if (typeof d.isRequiredSurvey === "boolean") setIsRequiredSurvey(d.isRequiredSurvey);
-      if (d.opensAt) setOpensAt(d.opensAt);
-      if (d.closesAt) setClosesAt(d.closesAt);
+      if ("opensAt" in d) setOpensAt(toDatetimeLocalValue(d.opensAt, initialOpensAt));
+      if ("closesAt" in d) setClosesAt(toDatetimeLocalValue(d.closesAt, initialClosesAt));
       if (d.targetClassId) setTargetClassId(d.targetClassId);
     } catch (_) { }
-  }, [isEdit, surveyId]);
+  }, [isEdit, surveyId, initialOpensAt, initialClosesAt]);
 
   useEffect(() => {
     if (!isEdit || !surveyId) return;
