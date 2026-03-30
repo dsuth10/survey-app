@@ -8,6 +8,7 @@
     "start:prod": "node scripts/start-prod.js",
     "start:lan": "node scripts/start-lan.js",
     "dev": "nodemon src/index.js",
+    "seed": "node src/db/seed.js",
     "mcp": "node src/mcp/server.js",
     "lint": "eslint .",
     "test": "jest"
@@ -26,6 +27,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.0",
     "express-session": "^1.18.2",
+    "survey": "file:..",
     "zod": "^4.3.6"
   },
   "devDependencies": {

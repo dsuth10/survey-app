@@ -137,7 +137,7 @@ router.get('/users', (req, res) => {
     if (activeOnly === 'true') opts.activeOnly = true;
 
     const p = parseInt(page, 10) || 1;
-    const l = parseInt(limit, 10) || 50;
+    const l = Math.min(parseInt(limit, 10) || 50, 10000);
     opts.limit = l;
     opts.offset = (p - 1) * l;
 

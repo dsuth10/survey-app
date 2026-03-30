@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
@@ -16,6 +16,11 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 
 const ROLES = ["student", "teacher", "admin"];
+
+/** User Management table: server page size (must match API). */
+const USERS_PER_PAGE = 25;
+/** When searching, load all users for client-side filter (school size). */
+const USERS_SEARCH_FETCH_LIMIT = 10000;
 
 function parseCSV(text) {
   const lines = text.trim().split(/\r?\n/);
@@ -89,6 +94,7 @@ export default function AdminDashboard() {
   const [classes, setClasses] = useState([]);
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState({ type: "", text: "" });
   const [page, setPage] = useState(1);
@@ -126,22 +132,40 @@ export default function AdminDashboard() {
   // teachers comes from a dedicated fetch so it's always complete regardless of pagination
   const teachers = allTeachers;
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
+    setUsersLoading(true);
     try {
-      const res = await axios.get("/api/admin/users");
-      // Backend returns { users, total, page, limit } for paginated responses
-      const data = res.data;
-      if (Array.isArray(data)) {
-        setUsers(data);
-        setTotalUsers(data.length);
+      const q = search.trim();
+      if (q) {
+        const res = await axios.get(`/api/admin/users?limit=${USERS_SEARCH_FETCH_LIMIT}`);
+        const data = res.data;
+        if (Array.isArray(data)) {
+          setUsers(data);
+          setTotalUsers(data.length);
+        } else {
+          const list = Array.isArray(data.users) ? data.users : [];
+          setUsers(list);
+          setTotalUsers(data.total ?? list.length);
+        }
       } else {
-        setUsers(Array.isArray(data.users) ? data.users : []);
-        setTotalUsers(data.total ?? 0);
+        const res = await axios.get(
+          `/api/admin/users?page=${page}&limit=${USERS_PER_PAGE}`
+        );
+        const data = res.data;
+        if (Array.isArray(data)) {
+          setUsers(data);
+          setTotalUsers(data.length);
+        } else {
+          setUsers(Array.isArray(data.users) ? data.users : []);
+          setTotalUsers(data.total ?? 0);
+        }
       }
     } catch (err) {
       setMessage({ type: "error", text: "Failed to load users" });
+    } finally {
+      setUsersLoading(false);
     }
-  };
+  }, [page, search]);
 
   const fetchClasses = async () => {
     try {
@@ -186,11 +210,15 @@ export default function AdminDashboard() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await Promise.all([fetchUsers(), fetchClasses(), fetchSurveys(), fetchTeachers(), fetchStudents()]);
+      await Promise.all([fetchClasses(), fetchSurveys(), fetchTeachers(), fetchStudents()]);
       setLoading(false);
     };
     load();
   }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const filteredUsers = search.trim()
     ? users.filter(
@@ -204,9 +232,14 @@ export default function AdminDashboard() {
     setPage(1);
   }, [search]);
 
-  const pagination = { page, perPage: 10 };
-  const start = (pagination.page - 1) * pagination.perPage;
-  const paginatedUsers = filteredUsers.slice(start, start + pagination.perPage);
+  const totalListCount = search.trim() ? filteredUsers.length : totalUsers;
+  const start = (page - 1) * USERS_PER_PAGE;
+  const paginatedUsers = search.trim()
+    ? filteredUsers.slice(start, start + USERS_PER_PAGE)
+    : users;
+  const totalPages = Math.max(1, Math.ceil((totalListCount || 0) / USERS_PER_PAGE));
+  const showingStart = totalListCount === 0 ? 0 : start + 1;
+  const showingEnd = Math.min(start + paginatedUsers.length, totalListCount);
 
   const openAddUser = () => {
     setFormUser({
@@ -616,7 +649,7 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                        {loading ? (
+                        {usersLoading ? (
                           <tr>
                             <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                               Loading…
@@ -670,13 +703,18 @@ export default function AdminDashboard() {
                   </div>
                   <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                     <p className="text-xs text-slate-500 font-medium">
-                      Showing {filteredUsers.length === 0 ? 0 : start + 1}-{Math.min(start + pagination.perPage, filteredUsers.length)} of {filteredUsers.length} users
+                      {totalListCount === 0
+                        ? "Showing 0 of 0 users"
+                        : `Showing ${showingStart}–${showingEnd} of ${totalListCount} users`}
                     </p>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => setPage((prev) => Math.max(1, prev - 1))} disabled={start === 0} className="p-1.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 disabled:opacity-50">
+                    <div className="flex gap-2 items-center">
+                      <span className="text-xs text-slate-400 tabular-nums">
+                        Page {page} of {totalPages}
+                      </span>
+                      <button type="button" onClick={() => setPage((prev) => Math.max(1, prev - 1))} disabled={page <= 1} className="p-1.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 disabled:opacity-50">
                         <span className="material-symbols-outlined text-[18px]">chevron_left</span>
                       </button>
-                      <button type="button" onClick={() => setPage((prev) => prev + 1)} disabled={start + pagination.perPage >= filteredUsers.length} className="p-1.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 disabled:opacity-50">
+                      <button type="button" onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))} disabled={page >= totalPages} className="p-1.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 disabled:opacity-50">
                         <span className="material-symbols-outlined text-[18px]">chevron_right</span>
                       </button>
                     </div>

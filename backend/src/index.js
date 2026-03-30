@@ -26,7 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(session({
   store: new SQLiteStore({
-    db: 'survey.db',
+    db: 'sessions.db',
     dir: path.resolve(__dirname, '../../')
   }),
   secret: process.env.SESSION_SECRET || 'survey-app-secret',
@@ -54,13 +54,23 @@ app.get('/api/health', (req, res) => {
 if (process.env.NODE_ENV === 'production') {
   const distDir = path.join(__dirname, '../../frontend/dist');
   const indexHtml = path.join(distDir, 'index.html');
-  app.use(express.static(distDir));
+  app.use(
+    express.static(distDir, {
+      setHeaders: (res, filePath) => {
+        // Always revalidate HTML so a refresh picks up new builds (hashed JS/CSS filenames change).
+        if (filePath.endsWith('index.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        }
+      },
+    })
+  );
 
   // Express 5 / path-to-regexp v8 rejects app.get('*', ...). Fall through from
   // static to SPA index for client-side routes; leave /api/* to the default 404.
   app.use((req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
     if (req.path.startsWith('/api')) return next();
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(indexHtml);
   });
 }
