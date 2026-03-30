@@ -2,6 +2,16 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
+import SignOutButton from "../components/SignOutButton";
+
+/** Survey is open for responses: not manually closed, within opensAt/closesAt window. */
+function isSurveyOpen(s) {
+  const now = new Date();
+  if (s.closedAt) return false;
+  if (s.opensAt && new Date(s.opensAt) > now) return false;
+  if (s.closesAt && new Date(s.closesAt) < now) return false;
+  return true;
+}
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -27,7 +37,9 @@ export default function StudentDashboard() {
 
   const completedSurveys = surveys.filter((s) => s.hasResponded && s.creatorId !== user?.id);
   const myCreatedSurveys = surveys.filter((s) => s.creatorId === user?.id);
-  const pendingSurveys = surveys.filter((s) => !s.hasResponded && !s.closesAt && !s.closedAt && s.creatorId !== user?.id);
+  const pendingSurveys = surveys.filter(
+    (s) => !s.hasResponded && isSurveyOpen(s) && s.creatorId !== user?.id
+  );
   const totalRelevantSurveys = surveys.filter(s => s.creatorId !== user?.id).length;
   const responseRate = totalRelevantSurveys > 0
     ? Math.round((completedSurveys.length / totalRelevantSurveys) * 100)
@@ -89,12 +101,13 @@ export default function StudentDashboard() {
           </button>
         </div>
         <div className="p-4 bg-slate-50 dark:bg-slate-800/50">
-          <div className="rounded-xl p-4">
+          <div className="rounded-xl p-4 space-y-2">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Support</p>
-            <button className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">
+            <button className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400 hover:text-primary transition-colors w-full text-left">
               <span className="material-symbols-outlined text-lg">help_center</span>
               <span>Help Center</span>
             </button>
+            <SignOutButton />
           </div>
         </div>
       </aside>

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   Modal,
@@ -14,6 +13,7 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { useAuth } from "../contexts/AuthContext";
+import SignOutButton from "../components/SignOutButton";
 
 const ROLES = ["student", "teacher", "admin"];
 
@@ -84,8 +84,7 @@ function roleBadgeClass(role) {
 }
 
 export default function AdminDashboard() {
-  const { user: authUser, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const [section, setSection] = useState("users");
   const [users, setUsers] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
@@ -461,11 +460,6 @@ export default function AdminDashboard() {
     reader.readAsText(importFile);
   };
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login");
-  };
-
   const activeSurveys = surveys.filter((s) => !s.closedAt);
   const surveyStatusList = surveys.slice(0, 5);
 
@@ -528,7 +522,7 @@ export default function AdminDashboard() {
             <span>Survey Overview</span>
           </button>
         </nav>
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
           <div className="flex items-center gap-3 p-2">
             <div className="size-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold">
               {getInitials(authUser.displayName || authUser.username)}
@@ -537,10 +531,8 @@ export default function AdminDashboard() {
               <p className="text-sm font-semibold truncate">{authUser.displayName || authUser.username}</p>
               <p className="text-xs text-slate-500 truncate">System Admin</p>
             </div>
-            <button type="button" onClick={handleLogout} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1">
-              <span className="material-symbols-outlined text-[20px]">logout</span>
-            </button>
           </div>
+          <SignOutButton />
         </div>
       </aside>
 
