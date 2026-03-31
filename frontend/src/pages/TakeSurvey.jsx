@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardHeader, CardBody, Divider, Button, Chip } from "@heroui/react";
@@ -24,7 +25,8 @@ export default function TakeSurvey() {
   const fetchSurvey = async () => {
     try {
       const response = await axios.get(`/api/surveys/${id}`);
-      setSurvey(response.data);
+      const { survey: surveyData, questions } = response.data;
+      setSurvey({ ...surveyData, questions });
     } catch (err) {
       setError('Failed to fetch survey details');
     } finally {
