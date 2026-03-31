@@ -13,6 +13,8 @@ const adminRoutes = require('./api/admin_routes');
 const app = express();
 const PORT = process.env.PORT || 3006;
 
+app.set('trust proxy', 1);
+
 // Initialize Database
 initDb();
 
